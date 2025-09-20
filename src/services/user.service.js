@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 const httpStatus = require('http-status');
 const { User } = require('../models');
 const ApiError = require('../utils/ApiError');
@@ -11,7 +12,15 @@ const createUser = async (userBody) => {
   if (await User.isEmailTaken(userBody.email)) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
   }
-  return User.create(userBody);
+  console.log('Creating new user:', userBody);
+  const user = await User.create(userBody);
+  console.log('Created user:', user);
+
+  // Verify user was actually saved by querying it back
+  const savedUser = await User.findOne({ email: userBody.email });
+  console.log('Queried back user from DB:', savedUser);
+
+  return user;
 };
 
 /**

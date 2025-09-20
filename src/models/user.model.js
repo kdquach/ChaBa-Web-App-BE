@@ -4,6 +4,29 @@ const bcrypt = require('bcryptjs');
 const { toJSON, paginate } = require('./plugins');
 const { roles } = require('../config/roles');
 
+const addressSchema = mongoose.Schema({
+  street: {
+    type: String,
+    required: false,
+    trim: true,
+  },
+  city: {
+    type: String,
+    required: false,
+    trim: true,
+  },
+  state: {
+    type: String,
+    required: false,
+    trim: true,
+  },
+  ward: {
+    type: String,
+    required: false,
+    trim: true,
+  },
+});
+
 const userSchema = mongoose.Schema(
   {
     name: {
@@ -34,6 +57,21 @@ const userSchema = mongoose.Schema(
         }
       },
       private: true, // used by the toJSON plugin
+    },
+    phone: {
+      type: String,
+      required: true,
+      trim: true,
+      validate(value) {
+        if (!validator.isMobilePhone(value, 'vi-VN')) {
+          throw new Error('Invalid phone number');
+        }
+      },
+    },
+    addresses: {
+      type: [addressSchema],
+      required: false,
+      default: [],
     },
     role: {
       type: String,

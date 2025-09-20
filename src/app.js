@@ -38,7 +38,15 @@ app.use(mongoSanitize());
 app.use(compression());
 
 // enable cors
-app.use(cors());
+// Thêm các headers CORS sau trong backend của bạn
+app.use(
+  cors({
+    origin: 'http://localhost:5173', // URL của frontend Vite
+    credentials: false, // Tạm thời set false
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+);
 app.options('*', cors());
 
 // jwt authentication
