@@ -1,6 +1,6 @@
 /* eslint-disable prettier/prettier */
-const mongoose = require('mongoose');
-const { toJSON, paginate } = require('./plugins');
+const mongoose = require("mongoose");
+const { toJSON, paginate } = require("./plugins");
 
 const toppingSchema = mongoose.Schema({
   name: {
@@ -18,7 +18,7 @@ const toppingSchema = mongoose.Schema({
 const recipeItemSchema = mongoose.Schema({
   ingredientId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Product',
+    ref: "Product",
     required: true,
   },
   quantity: {
@@ -65,7 +65,7 @@ const productSchema = mongoose.Schema({
   },
   categoryId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'ProductCategory',
+    ref: "ProductCategory",
     required: true,
   },
   toppings: {
@@ -87,6 +87,6 @@ const productSchema = mongoose.Schema({
 productSchema.plugin(toJSON);
 productSchema.plugin(paginate);
 
-const Product = mongoose.model('Product', productSchema);
+const Product = mongoose.model("Product", productSchema);
 
 module.exports = Product;

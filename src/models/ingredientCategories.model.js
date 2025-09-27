@@ -1,5 +1,5 @@
 /* eslint-disable prettier/prettier */
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const ingredientCategorySchema = mongoose.Schema({
   name: {
@@ -12,6 +12,9 @@ const ingredientCategorySchema = mongoose.Schema({
   },
 });
 
-const ingredientCategory = mongoose.model('IngredientCategory', ingredientCategorySchema);
+const ingredientCategory = mongoose.model(
+  "IngredientCategory",
+  ingredientCategorySchema
+);
 
 module.exports = ingredientCategory;

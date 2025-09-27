@@ -1,7 +1,7 @@
 /* eslint-disable prettier/prettier */
-const httpStatus = require('http-status');
-const ApiError = require('../utils/ApiError');
-const Product = require('../models/product.model');
+const httpStatus = require("http-status");
+const ApiError = require("../utils/ApiError");
+const Product = require("../models/product.model");
 
 /**
  * Create a product
@@ -9,8 +9,18 @@ const Product = require('../models/product.model');
  * @returns {Promise<Product>}
  */
 const createProduct = async (productBody) => {
-  const product = await Product.create(productBody);
-  return product;
+  try {
+    const product = await Product.create(productBody);
+    return product;
+  } catch (error) {
+    if (error.code === 11000) {
+      throw new ApiError(httpStatus.BAD_REQUEST, "Product name already exists");
+    }
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      "Error creating product"
+    );
+  }
 };
 
 /**
@@ -56,7 +66,7 @@ const updateProductById = async (productId, updateBody) => {
     new: true,
   });
   if (!product) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Product not found');
+    throw new ApiError(httpStatus.NOT_FOUND, "Product not found");
   }
   return product;
 };
@@ -69,7 +79,7 @@ const updateProductById = async (productId, updateBody) => {
 const deleteProductById = async (productId) => {
   const product = await Product.findByIdAndDelete(productId);
   if (!product) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Product not found');
+    throw new ApiError(httpStatus.NOT_FOUND, "Product not found");
   }
   return product;
 };

@@ -1,6 +1,6 @@
 /* eslint-disable prettier/prettier */
-const Joi = require('joi');
-const { objectId } = require('./custom.validation');
+const Joi = require("joi");
+const { objectId } = require("./custom.validation");
 
 const createProduct = {
   body: Joi.object().keys({
