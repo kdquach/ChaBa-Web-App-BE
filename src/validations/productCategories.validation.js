@@ -1,10 +1,10 @@
 /* eslint-disable prettier/prettier */
-const Joi = require('joi');
+const Joi = require("joi");
 
 const createProductCategories = {
   body: Joi.object().keys({
     name: Joi.string().required(),
-    description: Joi.string().allow(''),
+    description: Joi.string().allow(""),
   }),
 };
 const updateProductCategories = {
@@ -13,7 +13,7 @@ const updateProductCategories = {
   }),
   body: Joi.object().keys({
     name: Joi.string().required(),
-    description: Joi.string().allow(''),
+    description: Joi.string().allow(""),
   }),
 };
 const getProductCategories = {

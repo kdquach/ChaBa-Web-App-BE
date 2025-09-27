@@ -1,11 +1,11 @@
 /* eslint-disable prettier/prettier */
-const mongoose = require('mongoose');
-const { toJSON, paginate } = require('./plugins');
+const mongoose = require("mongoose");
+const { toJSON, paginate } = require("./plugins");
 
 const feedbackReplySchema = mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: "User",
     required: true,
   },
   content: {
@@ -21,12 +21,12 @@ const feedbackReplySchema = mongoose.Schema({
 const feedbackSchema = mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: "User",
     required: true,
   },
   productId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Product',
+    ref: "Product",
     required: true,
   },
   rating: {
@@ -49,6 +49,6 @@ const feedbackSchema = mongoose.Schema({
 feedbackSchema.plugin(toJSON);
 feedbackSchema.plugin(paginate);
 
-const Feedback = mongoose.model('Feedback', feedbackSchema);
+const Feedback = mongoose.model("Feedback", feedbackSchema);
 
 module.exports = Feedback;

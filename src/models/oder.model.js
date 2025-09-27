@@ -1,25 +1,25 @@
 /* eslint-disable prettier/prettier */
-const mongoose = require('mongoose');
-const { toJSON, paginate } = require('./plugins');
-const productSchema = require('./product.model');
+const mongoose = require("mongoose");
+const { toJSON, paginate } = require("./plugins");
+const productSchema = require("./product.model");
 
 const PaymentSchema = mongoose.Schema({
   method: {
     type: String,
-    enum: ['cash', 'card'],
+    enum: ["cash", "card"],
     required: true,
   },
   status: {
     type: String,
-    enum: ['pending', 'completed', 'failed'],
-    default: 'pending',
+    enum: ["pending", "completed", "failed"],
+    default: "pending",
   },
 });
 
 const orderSchema = mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: "User",
     required: true,
   },
   products: [productSchema],
@@ -31,8 +31,8 @@ const orderSchema = mongoose.Schema({
   payment: PaymentSchema,
   status: {
     type: String,
-    enum: ['pending', 'completed', 'canceled'],
-    default: 'pending',
+    enum: ["pending", "completed", "canceled"],
+    default: "pending",
   },
   createdAt: {
     type: Date,
@@ -44,6 +44,6 @@ const orderSchema = mongoose.Schema({
 orderSchema.plugin(toJSON);
 orderSchema.plugin(paginate);
 
-const Order = mongoose.model('Order', orderSchema);
+const Order = mongoose.model("Order", orderSchema);
 
 module.exports = Order;
