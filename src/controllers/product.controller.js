@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /* eslint-disable prettier/prettier */
 /* eslint-disable no-unused-vars */
 const httpStatus = require("http-status");
@@ -12,8 +13,9 @@ const createProduct = catchAsync(async (req, res) => {
 });
 
 const getProducts = catchAsync(async (req, res) => {
-  const filter = pick(req.query, ["name", "category", "brand"]); // lọc field filter
+  const filter = pick(req.query, ["name", "category", "status"]); // lọc field filter
   const options = pick(req.query, ["sortBy", "limit", "page"]); // lọc field option
+  options.populate = "category"; // populate category details
   const products = await productService.queryProducts(filter, options);
   res.status(httpStatus.OK).send(products);
 });
@@ -36,7 +38,7 @@ const updateProduct = catchAsync(async (req, res) => {
 
 const deleteProduct = catchAsync(async (req, res) => {
   await productService.deleteProductById(req.params.productId);
-  res.status(httpStatus.NO_CONTENT).send();
+  res.status(httpStatus.OK).send({ message: "Product deleted successfully" });
 });
 
 module.exports = {

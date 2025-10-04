@@ -1,7 +1,6 @@
 /* eslint-disable prettier/prettier */
 const mongoose = require("mongoose");
 const { toJSON, paginate } = require("./plugins");
-const ingredientCategorySchema = require("./ingredientCategories.model");
 
 const ingredientSchema = mongoose.Schema({
   name: {
@@ -17,7 +16,10 @@ const ingredientSchema = mongoose.Schema({
     required: true,
     min: 0,
   },
-  category: ingredientCategorySchema,
+  category: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Category",
+  },
 });
 
 ingredientSchema.plugin(toJSON);

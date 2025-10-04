@@ -68,6 +68,11 @@ const productSchema = mongoose.Schema({
     ref: "ProductCategory",
     required: true,
   },
+  status: {
+    type: String,
+    enum: ["Đang bán", "Ngừng bán"],
+    default: "Đang bán",
+  },
   toppings: {
     type: [toppingSchema],
     required: false,

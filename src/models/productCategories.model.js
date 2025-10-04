@@ -1,5 +1,6 @@
 /* eslint-disable prettier/prettier */
 const mongoose = require("mongoose");
+const { toJSON, paginate } = require("./plugins");
 
 const productCategorySchema = mongoose.Schema({
   name: {
@@ -13,6 +14,9 @@ const productCategorySchema = mongoose.Schema({
     trim: true,
   },
 });
+
+productCategorySchema.plugin(toJSON);
+productCategorySchema.plugin(paginate);
 
 const ProductCategory = mongoose.model(
   "ProductCategory",

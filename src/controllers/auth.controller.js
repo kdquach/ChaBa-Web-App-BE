@@ -15,7 +15,6 @@ const register = catchAsync(async (req, res) => {
 
 const login = catchAsync(async (req, res) => {
   // eslint-disable-next-line no-console
-  console.log("Login request body:", req.body);
   const { email, password } = req.body;
   const user = await authService.loginUserWithEmailAndPassword(email, password);
   const tokens = await tokenService.generateAuthTokens(user);
@@ -24,7 +23,7 @@ const login = catchAsync(async (req, res) => {
 
 const logout = catchAsync(async (req, res) => {
   await authService.logout(req.body.refreshToken);
-  res.status(httpStatus.NO_CONTENT).send();
+  res.status(httpStatus[200]).send();
 });
 
 const refreshTokens = catchAsync(async (req, res) => {

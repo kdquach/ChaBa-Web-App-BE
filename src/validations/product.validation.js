@@ -53,6 +53,17 @@ const updateProduct = {
     .min(1), // ít nhất phải có 1 trường để update
 };
 
+const getProducts = {
+  params: Joi.object().keys({
+    name: Joi.string(),
+    category: Joi.string().custom(objectId),
+    price: Joi.string().custom(objectId),
+    sortBy: Joi.string(),
+    limit: Joi.number().integer(),
+    page: Joi.number().integer(),
+  }),
+};
+
 const getProduct = {
   params: Joi.object().keys({
     productId: Joi.string().custom(objectId).required(),
@@ -66,6 +77,7 @@ const deleteProduct = {
 };
 
 module.exports = {
+  getProducts,
   createProduct,
   updateProduct,
   getProduct,
