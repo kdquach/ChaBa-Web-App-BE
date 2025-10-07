@@ -2,6 +2,7 @@
 const httpStatus = require("http-status");
 const ApiError = require("../utils/ApiError");
 const Product = require("../models/product.model");
+const cloudinary = require("../config/cloudinary");
 
 /**
  * Create a product
@@ -10,7 +11,19 @@ const Product = require("../models/product.model");
  */
 const createProduct = async (productBody) => {
   try {
-    const product = await Product.create(productBody);
+    // Middleware upload.single('image') đã xử lý upload ảnh lên Cloudinary
+    // và thêm req.file vào request
+    if (!productBody.image) {
+      throw new ApiError(httpStatus.BAD_REQUEST, "Product image is required");
+    }
+
+    console.log("createBody:", productBody);
+
+    const product = await Product.create({
+      ...productBody,
+      image: productBody.image, // URL của ảnh từ Cloudinary (đã được xử lý bởi middleware)
+    });
+
     return product;
   } catch (error) {
     if (error.code === 11000) {
@@ -62,12 +75,26 @@ const getProductByName = async (name) => {
  * @returns {Promise<Product>}
  */
 const updateProductById = async (productId, updateBody) => {
-  const product = await Product.findByIdAndUpdate(productId, updateBody, {
-    new: true,
-  });
+  const product = await getProductById(productId);
   if (!product) {
     throw new ApiError(httpStatus.NOT_FOUND, "Product not found");
   }
+
+  // Nếu có ảnh mới, có thể xóa ảnh cũ trên Cloudinary
+  if (updateBody.image && product.image) {
+    try {
+      // Lấy public_id từ URL của ảnh cũ
+      const publicId = product.image.split("/").pop().split(".")[0];
+      await cloudinary.uploader.destroy(`product_images/${publicId}`);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error("Error deleting old image:", error);
+      // Không throw error vì việc xóa ảnh cũ không quan trọng bằng việc cập nhật sản phẩm
+    }
+  }
+  // Cập nhật sản phẩm
+  Object.assign(product, updateBody);
+  await product.save();
   return product;
 };
 
@@ -77,11 +104,27 @@ const updateProductById = async (productId, updateBody) => {
  * @returns {Promise<Product>}
  */
 const deleteProductById = async (productId) => {
-  const product = await Product.findByIdAndDelete(productId);
+  const product = await getProductById(productId);
+
   if (!product) {
     throw new ApiError(httpStatus.NOT_FOUND, "Product not found");
   }
-  return product;
+
+  if (product.image) {
+    try {
+      const publicId = product.image.split("/").pop().split(".")[0];
+      await cloudinary.uploader.destroy(`product_images/${publicId}`);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error("Error deleting old image:", error);
+    }
+  }
+
+  const deletedProduct = await Product.findByIdAndDelete(productId);
+  if (!product) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Product not found");
+  }
+  return deletedProduct;
 };
 
 module.exports = {

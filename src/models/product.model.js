@@ -53,6 +53,11 @@ const productSchema = mongoose.Schema({
     required: true,
     trim: true,
   },
+  description: {
+    type: String,
+    required: false,
+    trim: true,
+  },
   price: {
     type: Number,
     required: true,
@@ -67,6 +72,11 @@ const productSchema = mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "ProductCategory",
     required: true,
+  },
+  status: {
+    type: String,
+    enum: ["Đang bán", "Ngừng bán"],
+    default: "Đang bán",
   },
   toppings: {
     type: [toppingSchema],

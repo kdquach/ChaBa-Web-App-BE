@@ -43,7 +43,7 @@ app.use(
   cors({
     origin: "http://localhost:5173", // URL của frontend Vite
     credentials: false, // Tạm thời set false
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
@@ -64,6 +64,12 @@ app.use("/v1", routes);
 // send back a 404 error for any unknown api request
 app.use((req, res, next) => {
   next(new ApiError(httpStatus.NOT_FOUND, "Not found"));
+});
+
+app.disable("etag");
+app.use((req, res, next) => {
+  res.set("Cache-Control", "no-store");
+  next();
 });
 
 // convert error to ApiError, if needed
