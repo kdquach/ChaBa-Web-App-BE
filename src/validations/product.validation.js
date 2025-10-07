@@ -6,15 +6,10 @@ const createProduct = {
   body: Joi.object().keys({
     name: Joi.string().required(),
     price: Joi.number().min(0).required(),
-    image: Joi.string().uri().required(),
     categoryId: Joi.string().custom(objectId).required(),
-    toppings: Joi.array().items(
-      Joi.object().keys({
-        _id: Joi.string().custom(objectId), // nếu client gửi _id thì validate
-        name: Joi.string().required(),
-        price: Joi.number().min(0).required(),
-      })
-    ),
+    image: Joi.string(), // 👈 thêm
+    description: Joi.string(), // 👈 thêm
+    status: Joi.string().valid("Đang bán", "Ngừng bán"), // 👈 nếu bạn có status
     recipe: Joi.array().items(
       Joi.object().keys({
         _id: Joi.string().custom(objectId), // nếu có sẵn trong DB
@@ -33,24 +28,20 @@ const updateProduct = {
     .keys({
       name: Joi.string(),
       price: Joi.number().min(0),
-      image: Joi.string().uri(),
-      categoryId: Joi.string().custom(objectId),
-      toppings: Joi.array().items(
-        Joi.object().keys({
-          _id: Joi.string().custom(objectId),
-          name: Joi.string(),
-          price: Joi.number().min(0),
-        })
-      ),
+      image: Joi.string(), // 👈 thêm
+      description: Joi.string(), // 👈 thêm
+      status: Joi.string().valid("Đang bán", "Ngừng bán"), // 👈 nếu bạn có status
       recipe: Joi.array().items(
+        // 👈 nếu có mảng nguyên liệu
         Joi.object().keys({
           _id: Joi.string().custom(objectId),
           ingredientId: Joi.string().custom(objectId),
           quantity: Joi.number().min(1),
         })
       ),
+      categoryId: Joi.string().custom(objectId),
     })
-    .min(1), // ít nhất phải có 1 trường để update
+    .min(1),
 };
 
 const getProducts = {

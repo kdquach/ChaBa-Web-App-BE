@@ -8,7 +8,16 @@ const catchAsync = require("../utils/catchAsync");
 const { productService } = require("../services");
 
 const createProduct = catchAsync(async (req, res) => {
-  const product = await productService.createProduct(req.body);
+  // Lấy URL ảnh từ middleware upload
+  const imageUrl = req.file ? req.file.path : null;
+
+  // Tạo product với data từ body và imageUrl
+  const productData = {
+    ...req.body,
+    image: imageUrl,
+  };
+
+  const product = await productService.createProduct(productData);
   res.status(httpStatus.CREATED).send(product);
 });
 
@@ -29,9 +38,18 @@ const getProduct = catchAsync(async (req, res) => {
 });
 
 const updateProduct = catchAsync(async (req, res) => {
+  // Lấy URL ảnh từ middleware upload nếu có upload ảnh mới
+  const imageUrl = req.file ? req.file.path : null;
+
+  // Tạo update data với data từ body và imageUrl (nếu có)
+  const updateData = {
+    ...req.body,
+    ...(imageUrl && { image: imageUrl }), // Chỉ cập nhật image nếu có upload ảnh mới
+  };
+
   const product = await productService.updateProductById(
     req.params.productId,
-    req.body
+    updateData
   );
   res.status(httpStatus.OK).send(product);
 });

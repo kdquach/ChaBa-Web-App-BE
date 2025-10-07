@@ -43,7 +43,7 @@ app.use(
   cors({
     origin: "http://localhost:5173", // URL của frontend Vite
     credentials: false, // Tạm thời set false
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
