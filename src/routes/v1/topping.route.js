@@ -24,6 +24,11 @@ router
     // auth("manageProducts"),
     validate(toppingValidation.updateTopping),
     toppingController.updateTopping
+  )
+  .delete(
+    // auth("manageProducts"),
+    validate(toppingValidation.deleteTopping),
+    toppingController.deleteTopping
   );
 
 module.exports = router;

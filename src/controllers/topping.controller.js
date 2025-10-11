@@ -50,6 +50,11 @@ class ToppingController {
     );
     res.status(httpStatus.OK).send(topping);
   }
+
+  async deleteTopping(req, res) {
+    await ToppingService.deleteToppingById(req.params.id);
+    res.status(httpStatus.NO_CONTENT).send();
+  }
 }
 
 module.exports = new ToppingController();

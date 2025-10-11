@@ -43,6 +43,18 @@ class ToppingService {
     await topping.save();
     return topping;
   }
+
+  static async deleteToppingById(id) {
+    const topping = await this.getToppingById(id);
+
+    if (!topping) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Topping not found");
+    }
+
+    await topping.remove();
+
+    return topping;
+  }
 }
 
 module.exports = ToppingService;

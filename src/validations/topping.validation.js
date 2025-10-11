@@ -41,7 +41,7 @@ const updateTopping = {
 
 const deleteTopping = {
   params: Joi.object().keys({
-    toppingId: Joi.string().custom(objectId).required(),
+    id: Joi.string().custom(objectId).required(),
   }),
 };
 
