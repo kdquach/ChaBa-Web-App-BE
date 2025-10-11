@@ -17,6 +17,15 @@ router
   )
   .get(validate(toppingValidation.getToppings), toppingController.getToppings);
 
+router
+  .route("/:id")
+  .get(validate(toppingValidation.getTopping), toppingController.getTopping)
+  .patch(
+    // auth("manageProducts"),
+    validate(toppingValidation.updateTopping),
+    toppingController.updateTopping
+  );
+
 module.exports = router;
 
 /**

@@ -2,12 +2,15 @@ const httpStatus = require("http-status");
 const catchAsync = require("../utils/catchAsync");
 const ToppingService = require("../services/topping.service");
 const pick = require("../utils/pick");
+const ApiError = require("../utils/ApiError");
 
 class ToppingController {
   constructor() {
     // Wrap và bind các method để dùng catchAsync mà không cần arrow fields
     this.createTopping = catchAsync(this.createTopping.bind(this));
     this.getToppings = catchAsync(this.getToppings.bind(this));
+    this.getTopping = catchAsync(this.getTopping.bind(this));
+    this.updateTopping = catchAsync(this.updateTopping.bind(this));
   }
 
   async createTopping(req, res) {
@@ -27,6 +30,25 @@ class ToppingController {
 
     const result = await ToppingService.getToppings(filter, options);
     res.send(result);
+  }
+
+  async getTopping(req, res) {
+    // SỬA LỖI: Gọi service bằng tên chuẩn và dùng req.params.id
+    const topping = await ToppingService.getToppingById(req.params.id);
+
+    if (!topping) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Topping not found");
+    }
+
+    res.status(httpStatus.OK).send(topping); // Thêm status 200 OK rõ ràng
+  }
+
+  async updateTopping(req, res) {
+    const topping = await ToppingService.updateToppingById(
+      req.params.id,
+      req.body
+    );
+    res.status(httpStatus.OK).send(topping);
   }
 }
 

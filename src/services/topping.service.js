@@ -23,6 +23,26 @@ class ToppingService {
     const toppings = await Topping.paginate(filter, options);
     return toppings;
   }
+
+  static async getToppingById(id) {
+    return Topping.findById(id);
+  }
+
+  static async updateToppingById(id, updateBody) {
+    const topping = await this.getToppingById(id);
+
+    if (!topping) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Topping not found");
+    }
+
+    if (updateBody.name && (await Topping.isNameTaken(updateBody.name, id))) {
+      throw new ApiError(httpStatus.BAD_REQUEST, "Topping name already token");
+    }
+
+    Object.assign(topping, updateBody);
+    await topping.save();
+    return topping;
+  }
 }
 
 module.exports = ToppingService;
