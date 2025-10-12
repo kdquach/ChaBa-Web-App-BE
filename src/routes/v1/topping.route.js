@@ -152,14 +152,14 @@ module.exports = router;
 
 /**
  * @swagger
- * /toppings/{toppingId}:
+ * /toppings/:id:
  *   get:
  *     summary: Lấy thông tin chi tiết Topping
  *     description: Lấy thông tin chi tiết của một topping theo ID
  *     tags: [Toppings]
  *     parameters:
  *       - in: path
- *         name: toppingId
+ *         name: id
  *         required: true
  *         schema:
  *           type: string
@@ -183,7 +183,7 @@ module.exports = router;
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: toppingId
+ *         name: id
  *         required: true
  *         schema:
  *           type: string
@@ -233,7 +233,7 @@ module.exports = router;
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: toppingId
+ *         name: id
  *         required: true
  *         schema:
  *           type: string
