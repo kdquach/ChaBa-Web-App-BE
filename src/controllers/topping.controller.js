@@ -14,7 +14,14 @@ class ToppingController {
   }
 
   async createTopping(req, res) {
-    const topping = await ToppingService.createTopping(req.body);
+    const imageUrl = req.file ? req.file.path : null;
+
+    const toppingData = {
+      ...req.body,
+      image: imageUrl,
+    };
+
+    const topping = await ToppingService.createTopping(toppingData);
     res.status(httpStatus.CREATED).send(topping);
   }
 
@@ -44,9 +51,16 @@ class ToppingController {
   }
 
   async updateTopping(req, res) {
+    const imageUrl = req.file ? req.file.path : null;
+
+    const updateData = {
+      ...req.body,
+      ...(imageUrl && { image: imageUrl }),
+    };
+
     const topping = await ToppingService.updateToppingById(
       req.params.id,
-      req.body
+      updateData
     );
     res.status(httpStatus.OK).send(topping);
   }

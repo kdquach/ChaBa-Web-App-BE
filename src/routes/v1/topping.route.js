@@ -3,6 +3,7 @@
 const express = require("express");
 const auth = require("../../middlewares/auth");
 const validate = require("../../middlewares/validate");
+const upload = require("../../middlewares/upload");
 const toppingValidation = require("../../validations/topping.validation");
 const toppingController = require("../../controllers/topping.controller");
 
@@ -12,6 +13,7 @@ router
   .route("/")
   .post(
     // auth("manageProducts"),
+    upload.single("image"),
     validate(toppingValidation.createTopping),
     toppingController.createTopping
   )
@@ -22,6 +24,7 @@ router
   .get(validate(toppingValidation.getTopping), toppingController.getTopping)
   .patch(
     // auth("manageProducts"),
+    upload.single("image"),
     validate(toppingValidation.updateTopping),
     toppingController.updateTopping
   )
@@ -45,30 +48,38 @@ module.exports = router;
  * /toppings:
  *   post:
  *     summary: Thêm Topping mới
- *     description: Yêu cầu quyền 'manageProducts'.
+ *     description: Yêu cầu quyền 'manageProducts'. Upload ảnh topping.
  *     tags: [Toppings]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             required:
  *               - name
  *               - price
+ *               - image
  *             properties:
  *               name:
  *                 type: string
+ *                 description: Tên topping
  *                 example: "Extra Cheese"
  *               price:
  *                 type: number
+ *                 description: Giá topping
  *                 example: 15000
  *               isAvailable:
  *                 type: boolean
+ *                 description: Trạng thái còn hàng
  *                 default: true
  *                 example: true
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: Hình ảnh topping
  *     responses:
  *       "201":
  *         description: Topping đã được tạo thành công
@@ -152,7 +163,7 @@ module.exports = router;
 
 /**
  * @swagger
- * /toppings/:id:
+ * /toppings/{id}:
  *   get:
  *     summary: Lấy thông tin chi tiết Topping
  *     description: Lấy thông tin chi tiết của một topping theo ID
@@ -177,7 +188,7 @@ module.exports = router;
  *
  *   patch:
  *     summary: Cập nhật Topping
- *     description: Yêu cầu quyền 'manageProducts'. Chỉ admin mới có thể cập nhật topping.
+ *     description: Yêu cầu quyền 'manageProducts'. Chỉ admin mới có thể cập nhật topping. Có thể cập nhật ảnh.
  *     tags: [Toppings]
  *     security:
  *       - bearerAuth: []
@@ -190,25 +201,28 @@ module.exports = router;
  *         description: ID của topping
  *         example: "507f1f77bcf86cd799439011"
  *     requestBody:
- *       required: true
+ *       required: false
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             properties:
  *               name:
  *                 type: string
+ *                 description: Tên topping
  *                 example: "Extra Cheese"
  *               price:
  *                 type: number
+ *                 description: Giá topping
  *                 example: 20000
  *               isAvailable:
  *                 type: boolean
+ *                 description: Trạng thái còn hàng
  *                 example: true
- *           example:
- *             name: "Extra Cheese"
- *             price: 20000
- *             isAvailable: true
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: Hình ảnh topping mới (optional)
  *     responses:
  *       "200":
  *         description: Cập nhật topping thành công
@@ -248,4 +262,45 @@ module.exports = router;
  *         $ref: '#/components/responses/Forbidden'
  *       "404":
  *         $ref: '#/components/responses/NotFound'
+ */
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Topping:
+ *       type: object
+ *       required:
+ *         - name
+ *         - price
+ *         - image
+ *       properties:
+ *         id:
+ *           type: string
+ *           description: ID của topping
+ *           example: "507f1f77bcf86cd799439011"
+ *         name:
+ *           type: string
+ *           description: Tên topping
+ *           example: "Extra Cheese"
+ *         price:
+ *           type: number
+ *           description: Giá topping
+ *           example: 15000
+ *         isAvailable:
+ *           type: boolean
+ *           description: Trạng thái còn hàng
+ *           example: true
+ *         image:
+ *           type: string
+ *           description: URL hình ảnh topping
+ *           example: "https://example.com/images/topping.jpg"
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *           description: Thời gian tạo
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ *           description: Thời gian cập nhật cuối
  */

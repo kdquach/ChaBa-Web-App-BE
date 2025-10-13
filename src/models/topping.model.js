@@ -18,6 +18,11 @@ const toppingSchema = new Schema(
       type: Boolean,
       default: true,
     },
+    image: {
+      type: String,
+      required: true,
+      trim: true,
+    },
   },
   {
     timestamps: true,
