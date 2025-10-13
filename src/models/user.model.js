@@ -46,33 +46,44 @@ const userSchema = mongoose.Schema(
         }
       },
     },
+
+    // ⚙️ thêm để hỗ trợ social login
+    provider: {
+      type: String,
+      enum: ["local", "google", "facebook"],
+      default: "local",
+    },
+    providerId: {
+      type: String, // ID của tài khoản Google/Facebook
+      default: null,
+    },
+
     password: {
       type: String,
-      required: true,
       trim: true,
       minlength: 8,
       validate(value) {
-        if (!value.match(/\d/) || !value.match(/[a-zA-Z]/)) {
+        // chỉ check nếu provider là local hoặc có password
+        if (value && (!value.match(/\d/) || !value.match(/[a-zA-Z]/))) {
           throw new Error(
             "Password must contain at least one letter and one number"
           );
         }
       },
-      private: true, // used by the toJSON plugin
+      private: true,
     },
     phone: {
       type: String,
-      required: true,
+      required: false, // ⚠️ không bắt buộc cho login bằng Google/Facebook
       trim: true,
       validate(value) {
-        if (!validator.isMobilePhone(value, "vi-VN")) {
+        if (value && !validator.isMobilePhone(value, "vi-VN")) {
           throw new Error("Invalid phone number");
         }
       },
     },
     addresses: {
       type: [addressSchema],
-      required: false,
       default: [],
     },
     role: {
@@ -83,6 +94,10 @@ const userSchema = mongoose.Schema(
     isEmailVerified: {
       type: Boolean,
       default: false,
+    },
+    avatar: {
+      type: String, // ảnh Google/Facebook nếu có
+      default: null,
     },
   },
   {
@@ -117,9 +132,12 @@ userSchema.methods.isPasswordMatch = async function (password) {
 
 userSchema.pre("save", async function (next) {
   const user = this;
-  if (user.isModified("password")) {
+
+  // Chỉ hash password nếu password được modified và không phải null/undefined
+  if (user.isModified("password") && user.password) {
     user.password = await bcrypt.hash(user.password, 8);
   }
+
   next();
 });
 
