@@ -5,9 +5,14 @@ const createIngredient = {
   body: Joi.object().keys({
     name: Joi.string().required(),
     unit: Joi.string().required(),
-    quantity: Joi.number().min(0).required(),
+    stock: Joi.number().min(0).required(),
+    minStock: Joi.number().min(0).required(),
+    maxStock: Joi.number().min(0).required(),
     price: Joi.number().min(0).required(),
-    supplier: Joi.string().allow(""),
+    expiryDate: Joi.date().optional(),
+    supplier: Joi.string().optional(),
+    description: Joi.string().optional(),
+    categoryId: Joi.string().custom(objectId).optional(),
   }),
 };
 
@@ -19,18 +24,28 @@ const updateIngredient = {
     .keys({
       name: Joi.string(),
       unit: Joi.string(),
-      quantity: Joi.number().min(0),
+      stock: Joi.number().min(0),
+      minStock: Joi.number().min(0),
+      maxStock: Joi.number().min(0),
       price: Joi.number().min(0),
-      supplier: Joi.string().allow(""),
+      expiryDate: Joi.date(),
+      supplier: Joi.string(),
+      description: Joi.string(),
+      categoryId: Joi.string().custom(objectId),
     })
-    .min(1), // ít nhất phải có 1 trường để update
+    .min(1),
 };
 
-const getIngredients = {
+const getAllIngredient = {
   query: Joi.object().keys({
     name: Joi.string(),
     unit: Joi.string(),
+    categoryId: Joi.string().custom(objectId),
     supplier: Joi.string(),
+    minStock: Joi.number().min(0),
+    maxStock: Joi.number().min(0),
+    price: Joi.number().min(0),
+    expiryDate: Joi.date(),
     sortBy: Joi.string(),
     limit: Joi.number().integer(),
     page: Joi.number().integer(),
@@ -52,7 +67,7 @@ const deleteIngredient = {
 module.exports = {
   createIngredient,
   updateIngredient,
-  getIngredients,
+  getAllIngredient,
   getIngredient,
   deleteIngredient,
 };
