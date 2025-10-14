@@ -50,6 +50,12 @@ const verifyEmail = {
   }),
 };
 
+const googleLogin = {
+  body: Joi.object().keys({
+    token: Joi.string().required().description("Google credential token"),
+  }),
+};
+
 module.exports = {
   register,
   login,
@@ -58,4 +64,5 @@ module.exports = {
   forgotPassword,
   resetPassword,
   verifyEmail,
+  googleLogin,
 };
