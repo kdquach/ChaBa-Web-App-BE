@@ -6,6 +6,7 @@ const createTopping = {
     name: Joi.string().required(),
     price: Joi.number().min(0).required(),
     isAvailable: Joi.boolean(),
+    image: Joi.string().allow(null, "").optional(),
   }),
 };
 
@@ -35,6 +36,7 @@ const updateTopping = {
       name: Joi.string(),
       price: Joi.number().min(0),
       isAvailable: Joi.boolean(),
+      image: Joi.string().allow(null, "").optional(),
     })
     .min(1), // Đảm bảo phải có 1 trường được update
 };
