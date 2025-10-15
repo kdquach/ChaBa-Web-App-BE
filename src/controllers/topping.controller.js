@@ -14,7 +14,14 @@ class ToppingController {
   }
 
   async createTopping(req, res) {
-    const imageUrl = req.file ? req.file.path : null;
+    if (!req.file || !req.file.path) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "Image file is required for creating a topping."
+      );
+    }
+
+    const imageUrl = req.file.path;
 
     const toppingData = {
       ...req.body,
