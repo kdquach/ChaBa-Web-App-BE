@@ -10,11 +10,29 @@ const createIngredient = catchAsync(async (req, res) => {
   res.status(httpStatus.CREATED).send(ingredient);
 });
 
-// Lấy danh sách ingredients (có filter + phân trang)
 const getAllIngredient = catchAsync(async (req, res) => {
+  const { price, expiryDate } = req.query;
   const filter = pick(req.query, ["name", "unit", "categoryId"]);
+
+  // Lọc theo giá nhỏ hơn hoặc bằng
+  if (price) {
+    filter.price = { $lte: Number(price) };
+  }
+
+  // Lọc hạn sử dụng: từ hôm nay đến ngày được chọn
+  if (expiryDate) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // bắt đầu từ đầu ngày hiện tại
+
+    const selectedDate = new Date(expiryDate);
+    selectedDate.setHours(23, 59, 59, 999); // đến hết ngày được chọn
+
+    filter.expiryDate = { $gte: today, $lte: selectedDate };
+  }
+
   const options = pick(req.query, ["sortBy", "limit", "page"]);
   options.populate = "categoryId";
+
   const ingredients = await ingredientService.queryIngredients(filter, options);
   res.status(httpStatus.OK).send(ingredients);
 });
