@@ -2,18 +2,18 @@
 const mongoose = require("mongoose");
 const { toJSON, paginate } = require("./plugins");
 
-const toppingSchema = mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
-    trim: true,
-  },
-  price: {
-    type: Number,
-    required: true,
-    min: 0,
-  },
-});
+// const toppingSchema = mongoose.Schema({
+//   name: {
+//     type: String,
+//     required: true,
+//     trim: true,
+//   },
+//   price: {
+//     type: Number,
+//     required: true,
+//     min: 0,
+//   },
+// });
 
 const recipeItemSchema = mongoose.Schema({
   ingredientId: {
@@ -78,11 +78,15 @@ const productSchema = mongoose.Schema({
     enum: ["Đang bán", "Ngừng bán"],
     default: "Đang bán",
   },
-  toppings: {
-    type: [toppingSchema],
-    required: false,
-    default: [],
-  },
+  toppings: [
+    {
+      toppingId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Topping",
+        required: true,
+      },
+    },
+  ],
   customization: {
     type: customizationSchema,
     required: false,

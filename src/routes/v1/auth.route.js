@@ -14,6 +14,11 @@ router.post(
 router.post("/login", validate(authValidation.login), authController.login);
 router.post("/logout", validate(authValidation.logout), authController.logout);
 router.post(
+  "/google",
+  validate(authValidation.googleLogin),
+  authController.googleLogin
+);
+router.post(
   "/refresh-tokens",
   validate(authValidation.refreshTokens),
   authController.refreshTokens

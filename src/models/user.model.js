@@ -4,26 +4,19 @@ const bcrypt = require("bcryptjs");
 const { toJSON, paginate } = require("./plugins");
 const { roles } = require("../config/roles");
 
-const addressSchema = mongoose.Schema({
-  street: {
-    type: String,
-    required: false,
-    trim: true,
+const addressSchema = new mongoose.Schema({
+  street: { type: String, trim: true, required: true }, // Đường, số nhà (user nhập)
+  ward: {
+    code: { type: String, required: true },
+    name: { type: String, required: true },
+  },
+  district: {
+    code: { type: String, required: true },
+    name: { type: String, required: true },
   },
   city: {
-    type: String,
-    required: false,
-    trim: true,
-  },
-  state: {
-    type: String,
-    required: false,
-    trim: true,
-  },
-  ward: {
-    type: String,
-    required: false,
-    trim: true,
+    code: { type: String, required: true },
+    name: { type: String, required: true },
   },
 });
 
@@ -46,33 +39,44 @@ const userSchema = mongoose.Schema(
         }
       },
     },
+
+    // ⚙️ thêm để hỗ trợ social login
+    provider: {
+      type: String,
+      enum: ["local", "google", "facebook"],
+      default: "local",
+    },
+    providerId: {
+      type: String, // ID của tài khoản Google/Facebook
+      default: null,
+    },
+
     password: {
       type: String,
-      required: true,
       trim: true,
       minlength: 8,
       validate(value) {
-        if (!value.match(/\d/) || !value.match(/[a-zA-Z]/)) {
+        // chỉ check nếu provider là local hoặc có password
+        if (value && (!value.match(/\d/) || !value.match(/[a-zA-Z]/))) {
           throw new Error(
             "Password must contain at least one letter and one number"
           );
         }
       },
-      private: true, // used by the toJSON plugin
+      private: true,
     },
     phone: {
       type: String,
-      required: true,
+      required: false, // ⚠️ không bắt buộc cho login bằng Google/Facebook
       trim: true,
       validate(value) {
-        if (!validator.isMobilePhone(value, "vi-VN")) {
+        if (value && !validator.isMobilePhone(value, "vi-VN")) {
           throw new Error("Invalid phone number");
         }
       },
     },
     addresses: {
       type: [addressSchema],
-      required: false,
       default: [],
     },
     role: {
@@ -80,9 +84,27 @@ const userSchema = mongoose.Schema(
       enum: roles,
       default: "user",
     },
+    type: {
+      type: String,
+      enum: ["staff", "user"],
+      default: "user",
+    },
+    permissions: {
+      type: [String],
+      default: [],
+    },
+    status: {
+      type: String,
+      enum: ["active", "inactive"],
+      default: "active",
+    },
     isEmailVerified: {
       type: Boolean,
       default: false,
+    },
+    avatar: {
+      type: String, // ảnh Google/Facebook nếu có
+      default: null,
     },
   },
   {
@@ -117,15 +139,18 @@ userSchema.methods.isPasswordMatch = async function (password) {
 
 userSchema.pre("save", async function (next) {
   const user = this;
-  if (user.isModified("password")) {
+
+  // Chỉ hash password nếu password được modified và không phải null/undefined
+  if (user.isModified("password") && user.password) {
     user.password = await bcrypt.hash(user.password, 8);
   }
+
   next();
 });
 
 /**
  * @typedef User
  */
-const User = mongoose.model("User", userSchema);
+const User = mongoose.model("users", userSchema);
 
 module.exports = User;

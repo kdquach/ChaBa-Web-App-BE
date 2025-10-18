@@ -12,6 +12,7 @@
   },
   "scripts": {
     "start": "pm2 start ecosystem.config.json --no-daemon",
+    "seed": "node seed1.js",
     "dev": "cross-env NODE_ENV=development nodemon src/index.js",
     "test": "jest -i --colors --verbose --detectOpenHandles",
     "test:watch": "jest -i --watchAll",
@@ -58,6 +59,7 @@
     "express": "^4.17.1",
     "express-mongo-sanitize": "^2.0.0",
     "express-rate-limit": "^5.0.0",
+    "google-auth-library": "^10.4.0",
     "helmet": "^4.1.0",
     "http-status": "^1.4.0",
     "joi": "^17.3.0",
@@ -91,7 +93,7 @@
     "jest": "^26.0.1",
     "lint-staged": "^11.0.0",
     "node-mocks-http": "^1.8.0",
-    "nodemon": "^2.0.0",
+    "nodemon": "^3.1.10",
     "prettier": "^2.0.5",
     "supertest": "^6.0.1"
   }

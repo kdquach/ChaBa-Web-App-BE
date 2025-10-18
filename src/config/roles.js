@@ -1,4 +1,5 @@
 const allRoles = {
+  staff: [],
   user: [],
   admin: [
     "getUsers",

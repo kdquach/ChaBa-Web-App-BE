@@ -71,12 +71,25 @@ const verifyToken = async (token, type) => {
  * @returns {Promise<Object>}
  */
 const generateAuthTokens = async (user) => {
+  console.log("🔑 generateAuthTokens called with user:", {
+    id: user.id,
+    _id: user._id,
+    email: user.email,
+  });
+
+  // ✅ Sử dụng user._id thay vì user.id
+  const userId = user._id || user.id;
+
+  if (!userId) {
+    throw new Error("User ID is required for token generation");
+  }
+
   const accessTokenExpires = moment().add(
     config.jwt.accessExpirationMinutes,
     "minutes"
   );
   const accessToken = generateToken(
-    user.id,
+    userId,
     accessTokenExpires,
     tokenTypes.ACCESS
   );
@@ -86,16 +99,19 @@ const generateAuthTokens = async (user) => {
     "days"
   );
   const refreshToken = generateToken(
-    user.id,
+    userId,
     refreshTokenExpires,
     tokenTypes.REFRESH
   );
+
+  console.log("💾 Saving refresh token to database...");
   await saveToken(
     refreshToken,
-    user.id,
+    userId,
     refreshTokenExpires,
     tokenTypes.REFRESH
   );
+  console.log("✅ Refresh token saved successfully");
 
   return {
     access: {

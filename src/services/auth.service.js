@@ -4,6 +4,9 @@ const userService = require("./user.service");
 const Token = require("../models/token.model");
 const ApiError = require("../utils/ApiError");
 const { tokenTypes } = require("../config/tokens");
+const jwt = require("jsonwebtoken");
+const User = require("../models/user.model");
+const { verifyGoogleToken } = require("../utils/googleVerify");
 
 /**
  * Login with username and password
@@ -103,10 +106,71 @@ const verifyEmail = async (verifyEmailToken) => {
   }
 };
 
+/**
+ * Xử lý đăng nhập Google
+ * @param {string} token - Google credential token từ FE
+ * @returns {Promise<{ user: object, tokens: object }>}
+ */
+const googleLogin = async (token) => {
+  try {
+    console.log("🔍 authService.googleLogin started");
+
+    const googleUser = await verifyGoogleToken(token);
+    console.log("✅ Google user verified:", {
+      email: googleUser.email,
+      name: googleUser.name,
+    });
+
+    if (!googleUser?.email) {
+      throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid Google token");
+    }
+
+    let user = await User.findOne({ email: googleUser.email });
+    console.log("🔍 Existing user found:", user ? "Yes" : "No");
+
+    if (!user) {
+      console.log("📝 Creating new user...");
+      user = await User.create({
+        name: googleUser.name,
+        email: googleUser.email,
+        provider: "google",
+        providerId: googleUser.googleId,
+        isEmailVerified: googleUser.emailVerified || true,
+        avatar: googleUser.picture,
+      });
+      console.log("✅ New user created:", user._id);
+    } else if (user.provider === "local") {
+      throw new ApiError(
+        httpStatus.CONFLICT,
+        "Email đã được đăng ký bằng tài khoản thường."
+      );
+    }
+
+    console.log("👤 User before token generation:", {
+      id: user.id,
+      _id: user._id,
+      email: user.email,
+      name: user.name,
+    });
+
+    return user;
+  } catch (error) {
+    console.error("❌ Google login error:", error.message);
+
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError(
+      httpStatus.UNAUTHORIZED,
+      "Google authentication failed: " + error.message
+    );
+  }
+};
 module.exports = {
   loginUserWithEmailAndPassword,
   logout,
   refreshAuth,
+  googleLogin,
   resetPassword,
   verifyEmail,
 };
