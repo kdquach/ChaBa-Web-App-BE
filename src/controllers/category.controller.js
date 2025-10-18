@@ -5,7 +5,11 @@ const catchAsync = require("../utils/catchAsync");
 const { categoryService } = require("../services");
 
 const getCategories = catchAsync(async (req, res) => {
-  const filter = pick(req.query, ["name"]); // lọc field filter
+  // Hỗ trợ tìm kiếm theo tên dạng chứa (case-insensitive)
+  const filter = {};
+  if (req.query.name && String(req.query.name).trim()) {
+    filter.name = { $regex: String(req.query.name).trim(), $options: "i" };
+  }
   const options = pick(req.query, ["sortBy", "limit", "page"]); // lọc field option
   const categories = await categoryService.queryCategories(filter, options);
   res.status(httpStatus.OK).send(categories);
