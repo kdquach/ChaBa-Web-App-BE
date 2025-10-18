@@ -4,26 +4,19 @@ const bcrypt = require("bcryptjs");
 const { toJSON, paginate } = require("./plugins");
 const { roles } = require("../config/roles");
 
-const addressSchema = mongoose.Schema({
-  street: {
-    type: String,
-    required: false,
-    trim: true,
+const addressSchema = new mongoose.Schema({
+  street: { type: String, trim: true, required: true }, // Đường, số nhà (user nhập)
+  ward: {
+    code: { type: String, required: true },
+    name: { type: String, required: true },
+  },
+  district: {
+    code: { type: String, required: true },
+    name: { type: String, required: true },
   },
   city: {
-    type: String,
-    required: false,
-    trim: true,
-  },
-  state: {
-    type: String,
-    required: false,
-    trim: true,
-  },
-  ward: {
-    type: String,
-    required: false,
-    trim: true,
+    code: { type: String, required: true },
+    name: { type: String, required: true },
   },
 });
 
@@ -91,6 +84,20 @@ const userSchema = mongoose.Schema(
       enum: roles,
       default: "user",
     },
+    type: {
+      type: String,
+      enum: ["staff", "user"],
+      default: "user",
+    },
+    permissions: {
+      type: [String],
+      default: [],
+    },
+    status: {
+      type: String,
+      enum: ["active", "inactive"],
+      default: "active",
+    },
     isEmailVerified: {
       type: Boolean,
       default: false,
@@ -153,6 +160,6 @@ userSchema.pre("save", async function (next) {
 /**
  * @typedef User
  */
-const User = mongoose.model("User", userSchema);
+const User = mongoose.model("users", userSchema);
 
 module.exports = User;

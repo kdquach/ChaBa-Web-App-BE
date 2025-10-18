@@ -2,12 +2,14 @@ const Joi = require("joi");
 const { objectId } = require("./custom.validation");
 
 const createTopping = {
-  body: Joi.object().keys({
-    name: Joi.string().required(),
-    price: Joi.number().min(0).required(),
-    isAvailable: Joi.boolean(),
-    image: Joi.string().allow(null, "").optional(),
-  }),
+  body: Joi.object()
+    .keys({
+      name: Joi.string().required(),
+      price: Joi.number().min(0).required(),
+      isAvailable: Joi.boolean(),
+      image: Joi.any().optional(),
+    })
+    .unknown(true),
 };
 
 const getToppings = {
@@ -36,9 +38,10 @@ const updateTopping = {
       name: Joi.string(),
       price: Joi.number().min(0),
       isAvailable: Joi.boolean(),
-      image: Joi.string().allow(null, "").optional(),
+      image: Joi.any().optional(),
     })
-    .min(1), // Đảm bảo phải có 1 trường được update
+    .min(1) // Đảm bảo phải có 1 trường được update
+    .unknown(true),
 };
 
 const deleteTopping = {
