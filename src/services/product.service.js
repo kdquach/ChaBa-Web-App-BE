@@ -17,7 +17,7 @@ const createProduct = async (productBody) => {
       throw new ApiError(httpStatus.BAD_REQUEST, "Product image is required");
     }
 
-    console.log("createBody:", productBody);
+    // console.log("createBody:", productBody);
 
     const product = await Product.create({
       ...productBody,
