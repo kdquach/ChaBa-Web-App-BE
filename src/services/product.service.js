@@ -17,8 +17,6 @@ const createProduct = async (productBody) => {
       throw new ApiError(httpStatus.BAD_REQUEST, "Product image is required");
     }
 
-    // console.log("createBody:", productBody);
-
     const product = await Product.create({
       ...productBody,
       image: productBody.image, // URL của ảnh từ Cloudinary (đã được xử lý bởi middleware)

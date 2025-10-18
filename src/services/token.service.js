@@ -71,12 +71,6 @@ const verifyToken = async (token, type) => {
  * @returns {Promise<Object>}
  */
 const generateAuthTokens = async (user) => {
-  console.log("🔑 generateAuthTokens called with user:", {
-    id: user.id,
-    _id: user._id,
-    email: user.email,
-  });
-
   // ✅ Sử dụng user._id thay vì user.id
   const userId = user._id || user.id;
 
@@ -104,14 +98,12 @@ const generateAuthTokens = async (user) => {
     tokenTypes.REFRESH
   );
 
-  console.log("💾 Saving refresh token to database...");
   await saveToken(
     refreshToken,
     userId,
     refreshTokenExpires,
     tokenTypes.REFRESH
   );
-  console.log("✅ Refresh token saved successfully");
 
   return {
     access: {

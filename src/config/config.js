@@ -69,9 +69,14 @@ module.exports = {
     smtp: {
       host: envVars.SMTP_HOST,
       port: envVars.SMTP_PORT,
+      secure: false, // true for 465, false for other ports
       auth: {
         user: envVars.SMTP_USERNAME,
         pass: envVars.SMTP_PASSWORD,
+      },
+      // ✅ Thêm các options này cho Gmail
+      tls: {
+        rejectUnauthorized: false,
       },
     },
     from: envVars.EMAIL_FROM,

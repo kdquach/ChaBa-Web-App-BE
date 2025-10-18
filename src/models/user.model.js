@@ -123,7 +123,16 @@ userSchema.plugin(paginate);
  * @returns {Promise<boolean>}
  */
 userSchema.statics.isEmailTaken = async function (email, excludeUserId) {
-  const user = await this.findOne({ email, _id: { $ne: excludeUserId } });
+  // Normalize email before checking
+  const normalizedEmail =
+    typeof email === "string" ? email.trim().toLowerCase() : email;
+
+  const filter = { email: normalizedEmail };
+  if (excludeUserId) {
+    filter._id = { $ne: excludeUserId };
+  }
+
+  const user = await this.findOne(filter);
   return !!user;
 };
 
