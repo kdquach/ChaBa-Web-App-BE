@@ -6,6 +6,38 @@ const auth = require("../../middlewares/auth");
 
 const router = express.Router();
 
+// OTP-based registration
+router.post(
+  "/register/send-otp",
+  validate(authValidation.registerStep1),
+  authController.registerStep1
+);
+
+router.post(
+  "/register/verify-otp",
+  validate(authValidation.registerStep2),
+  authController.registerStep2
+);
+
+// OTP-based password reset
+router.post(
+  "/forgot-password/send-otp",
+  validate(authValidation.forgotPasswordStep1),
+  authController.forgotPasswordStep1
+);
+
+router.post(
+  "/forgot-password/verify-otp",
+  validate(authValidation.forgotPasswordStep2),
+  authController.forgotPasswordStep2
+);
+
+router.post(
+  "/reset-password/with-otp",
+  validate(authValidation.resetPasswordWithOTP),
+  authController.resetPasswordWithOTP
+);
+
 router.post(
   "/register",
   validate(authValidation.register),
@@ -17,6 +49,11 @@ router.post(
   "/google",
   validate(authValidation.googleLogin),
   authController.googleLogin
+);
+router.post(
+  "/facebook",
+  validate(authValidation.googleLogin),
+  authController.facebookLogin
 );
 router.post(
   "/refresh-tokens",
