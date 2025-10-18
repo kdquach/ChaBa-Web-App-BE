@@ -79,7 +79,9 @@ const resetPassword = async (resetPasswordToken, newPassword) => {
     if (!user) {
       throw new Error();
     }
-    await userService.updateUserById(user.id, { password: newPassword });
+    // Use model instance + save so pre-save hook hashes the password
+    user.password = newPassword;
+    await user.save();
     await Token.deleteMany({ user: user.id, type: tokenTypes.RESET_PASSWORD });
   } catch (error) {
     throw new ApiError(httpStatus.UNAUTHORIZED, "Password reset failed");
@@ -276,8 +278,9 @@ const resetPasswordWithOTP = async (email, password) => {
     throw new ApiError(httpStatus.NOT_FOUND, "User không tồn tại");
   }
 
-  // Cập nhật password
-  await userService.updateUserById(user.id, { password });
+  // Cập nhật password - use model save() so pre-save hook hashes the password
+  user.password = password;
+  await user.save();
 
   // Cleanup OTP
   await otpService.cleanupOTP(email, "FORGOT_PASSWORD");
