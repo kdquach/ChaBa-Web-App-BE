@@ -33,9 +33,20 @@ const getUser = catchAsync(async (req, res) => {
 });
 
 const updateUser = catchAsync(async (req, res) => {
-  const user = await userService.updateUserById(req.params.userId, req.body);
+  const updateData = { ...req.body };
+  if (req.body.addresses && typeof req.body.addresses === "string") {
+    updateData.addresses = JSON.parse(req.body.addresses);
+  }
+  // Nếu có file upload thì thêm avatar, nếu không thì giữ nguyên
+  if (req.file) {
+    updateData.avatar = req.file.path;
+  }
+
+  const user = await userService.updateUserById(req.params.userId, updateData);
   res.send(user);
 });
+
+
 
 const deleteUser = catchAsync(async (req, res) => {
   await userService.deleteUserById(req.params.userId);
@@ -48,4 +59,5 @@ module.exports = {
   getUser,
   updateUser,
   deleteUser,
+
 };

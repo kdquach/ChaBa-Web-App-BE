@@ -166,11 +166,48 @@ const googleLogin = async (token) => {
     );
   }
 };
+const changePassword = async (userId, body) => {
+  const user = await userService.getUserById(userId);
+  if (!user) {
+    throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  // Nếu là tài khoản social login hoặc chưa có mật khẩu nội bộ thì không cho đổi trực tiếp
+  if (user.provider && user.provider !== "local") {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "Tài khoản đăng nhập bằng mạng xã hội chưa thiết lập mật khẩu. Vui lòng đặt mật khẩu trước."
+    );
+  }
+  if (!user.password) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "Tài khoản chưa có mật khẩu nội bộ. Vui lòng đặt mật khẩu trước."
+    );
+  }
+
+  const isMatch = await user.isPasswordMatch(body.currentPassword);
+  if (!isMatch) {
+    throw new ApiError(httpStatus.UNAUTHORIZED, "Mật khẩu hiện tại không đúng!");
+  }
+
+  if (body.currentPassword === body.newPassword) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "Mật khẩu mới không được trùng với mật khẩu cũ"
+    );
+  }
+
+  user.password = body.newPassword;
+  await user.save();
+  return user;
+};
 module.exports = {
   loginUserWithEmailAndPassword,
   logout,
   refreshAuth,
   googleLogin,
+  changePassword,
   resetPassword,
   verifyEmail,
 };

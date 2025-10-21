@@ -63,7 +63,12 @@ const googleLogin = catchAsync(async (req, res) => {
   const tokens = await tokenService.generateAuthTokens(user);
   res.send({ user, tokens });
 });
-
+const changePassword = catchAsync(async (req, res) => {
+  const userId = req.user.id; // lấy từ token xác thực
+  console.log("🚀 ~ userId:", userId)
+  await authService.changePassword(userId, req.body);
+  res.send({ message: 'Đổi mật khẩu thành công' });
+});
 module.exports = {
   register,
   login,
@@ -74,4 +79,5 @@ module.exports = {
   sendVerificationEmail,
   verifyEmail,
   googleLogin,
+  changePassword,
 };

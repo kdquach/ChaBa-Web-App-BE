@@ -1,5 +1,6 @@
 const Joi = require("joi");
 const { password, objectId } = require("./custom.validation");
+const { roles } = require("../config/roles");
 
 const createUser = {
   body: Joi.object().keys({
@@ -27,10 +28,10 @@ const createUser = {
       )
       .optional(),
     permissions: Joi.array().items(Joi.string()).allow(null).optional(),
-    role: Joi.string().required().valid("user", "admin"),
+    role: Joi.string().required().valid(...roles),
     type: Joi.string().valid("staff", "user").optional(),
     status: Joi.string().valid("active", "inactive").optional(),
-  }),
+  }).unknown(true),
 };
 
 const getUsers = {
@@ -66,6 +67,7 @@ const updateUser = {
     .unknown(true),
 };
 
+
 const deleteUser = {
   params: Joi.object().keys({
     userId: Joi.string().custom(objectId),
@@ -78,4 +80,5 @@ module.exports = {
   getUser,
   updateUser,
   deleteUser,
+
 };
