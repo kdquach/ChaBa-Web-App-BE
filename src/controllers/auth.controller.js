@@ -64,6 +64,13 @@ const googleLogin = catchAsync(async (req, res) => {
   res.send({ user, tokens });
 });
 
+const changePassword = catchAsync(async (req, res) => {
+  const userId = req.user.id; 
+  await authService.changePassword(userId, req.body);
+  res.send({ message: 'Đổi mật khẩu thành công' });
+});
+
+
 const facebookLogin = catchAsync(async (req, res) => {
   const { token } = req.body;
   const user = await authService.facebookLogin(token);
@@ -131,6 +138,7 @@ module.exports = {
   sendVerificationEmail,
   verifyEmail,
   googleLogin,
+  changePassword,
   registerStep1,
   registerStep2,
   forgotPasswordStep1,
