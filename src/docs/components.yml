@@ -1,5 +1,23 @@
 components:
   schemas:
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Category ID
+        name:
+          type: string
+          description: Category name
+        description:
+          type: string
+          description: Category description
+      required:
+        - name
+      example:
+        id: 6716f8f4c5b7a2f9d1e4a123
+        name: Tea
+        description: All teas
     User:
       type: object
       properties:
