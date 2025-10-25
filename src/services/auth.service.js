@@ -310,7 +310,10 @@ const changePassword = async (userId, body) => {
 
   const isMatch = await user.isPasswordMatch(body.currentPassword);
   if (!isMatch) {
-    throw new ApiError(httpStatus.UNAUTHORIZED, "Mật khẩu hiện tại không đúng!");
+    throw new ApiError(
+      httpStatus.UNAUTHORIZED,
+      "Mật khẩu hiện tại không đúng!"
+    );
   }
 
   if (body.currentPassword === body.newPassword) {
