@@ -3,6 +3,11 @@ const mongoose = require("mongoose");
 const { toJSON, paginate } = require("./plugins");
 
 const customizationSchema = mongoose.Schema({
+  size: {
+    type: String,
+    required: false,
+    enum: ["S", "M", "L"],
+  },
   ice: {
     type: Number,
     required: false,
