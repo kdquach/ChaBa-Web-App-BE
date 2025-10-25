@@ -4,19 +4,42 @@ const { objectId } = require("./custom.validation");
 
 const createProduct = {
   body: Joi.object().keys({
-    name: Joi.string().required(),
-    price: Joi.number().min(0).required(),
-    categoryId: Joi.string().custom(objectId).required(),
-    image: Joi.string(), // 👈 thêm
-    description: Joi.string(), // 👈 thêm
-    status: Joi.string().valid("Đang bán", "Ngừng bán"), // 👈 nếu bạn có status
-    recipe: Joi.array().items(
-      Joi.object().keys({
-        _id: Joi.string().custom(objectId), // nếu có sẵn trong DB
-        ingredientId: Joi.string().custom(objectId).required(),
-        quantity: Joi.number().min(1).required(),
-      })
-    ),
+    name: Joi.string().required().messages({
+      "any.required": "Tên sản phẩm là bắt buộc",
+      "string.empty": "Tên sản phẩm không được để trống",
+    }),
+
+    price: Joi.number().min(0).required().messages({
+      "any.required": "Giá sản phẩm là bắt buộc",
+      "number.base": "Giá sản phẩm phải là số",
+      "number.min": "Giá sản phẩm không được nhỏ hơn 0",
+    }),
+
+    categoryId: Joi.string().custom(objectId).required().messages({
+      "any.required": "Danh mục là bắt buộc",
+    }),
+
+    status: Joi.string().valid("Đang bán", "Ngừng bán").default("Đang bán"),
+
+    description: Joi.string().allow("", null),
+
+    // ✅ ảnh có thể là đường dẫn hoặc file
+    image: Joi.alternatives()
+      .try(Joi.string(), Joi.object().unknown(true))
+      .optional(),
+
+    // ✅ toppings là danh sách ID topping
+    toppings: Joi.array().items(Joi.string().custom(objectId)).optional(),
+
+    // ✅ recipe gồm ingredientId + quantity
+    recipe: Joi.array()
+      .items(
+        Joi.object({
+          ingredientId: Joi.string().custom(objectId).required(),
+          quantity: Joi.number().min(0).required(),
+        })
+      )
+      .optional(),
   }),
 };
 
@@ -26,20 +49,40 @@ const updateProduct = {
   }),
   body: Joi.object()
     .keys({
-      name: Joi.string(),
-      price: Joi.number().min(0),
-      image: Joi.string(), // 👈 thêm
-      description: Joi.string(), // 👈 thêm
-      status: Joi.string().valid("Đang bán", "Ngừng bán"), // 👈 nếu bạn có status
-      recipe: Joi.array().items(
-        // 👈 nếu có mảng nguyên liệu
-        Joi.object().keys({
-          _id: Joi.string().custom(objectId),
-          ingredientId: Joi.string().custom(objectId),
-          quantity: Joi.number().min(1),
-        })
-      ),
-      categoryId: Joi.string().custom(objectId),
+      name: Joi.string().required().messages({
+        "any.required": "Tên sản phẩm là bắt buộc",
+        "string.empty": "Tên sản phẩm không được để trống",
+      }),
+
+      price: Joi.number().min(0).required().messages({
+        "any.required": "Giá sản phẩm là bắt buộc",
+        "number.base": "Giá sản phẩm phải là số",
+        "number.min": "Giá sản phẩm không được nhỏ hơn 0",
+      }),
+
+      categoryId: Joi.string().custom(objectId).required().messages({
+        "any.required": "Danh mục là bắt buộc",
+      }),
+      status: Joi.string().valid("Đang bán", "Ngừng bán"),
+      description: Joi.string().allow("", null),
+
+      // ✅ ảnh có thể là đường dẫn hoặc file
+      image: Joi.alternatives()
+        .try(Joi.string(), Joi.object().unknown(true))
+        .optional(),
+
+      // ✅ toppings là danh sách ID topping
+      toppings: Joi.array().items(Joi.string().custom(objectId)).optional(),
+
+      // ✅ recipe gồm ingredientId + quantity
+      recipe: Joi.array()
+        .items(
+          Joi.object({
+            ingredientId: Joi.string().custom(objectId).required(),
+            quantity: Joi.number().min(0).required(),
+          })
+        )
+        .optional(),
     })
     .min(1),
 };
