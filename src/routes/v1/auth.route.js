@@ -81,9 +81,14 @@ router.post(
   validate(authValidation.verifyEmail),
   authController.verifyEmail
 );
+router.get(
+  "/verify",
+  validate(authValidation.verifyEmail),
+  authController.verifyEmail
+);
 
 router.patch(
-  '/change-password',
+  "/change-password",
   auth(),
   validate(authValidation.changePassword),
   authController.changePassword
