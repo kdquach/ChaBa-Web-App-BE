@@ -2,32 +2,6 @@
 const mongoose = require("mongoose");
 const { toJSON, paginate } = require("./plugins");
 
-// const toppingSchema = mongoose.Schema({
-//   name: {
-//     type: String,
-//     required: true,
-//     trim: true,
-//   },
-//   price: {
-//     type: Number,
-//     required: true,
-//     min: 0,
-//   },
-// });
-
-const recipeItemSchema = mongoose.Schema({
-  ingredientId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Product",
-    required: true,
-  },
-  quantity: {
-    type: Number,
-    required: true,
-    min: 1,
-  },
-});
-
 const customizationSchema = mongoose.Schema({
   ice: {
     type: Number,
@@ -41,7 +15,7 @@ const customizationSchema = mongoose.Schema({
     min: 0,
     max: 100,
   },
-  describtion: {
+  description: {
     type: String,
     required: false,
   },
@@ -78,23 +52,31 @@ const productSchema = mongoose.Schema({
     enum: ["Đang bán", "Ngừng bán"],
     default: "Đang bán",
   },
-  toppings: [
-    {
-      toppingId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Topping",
-        required: true,
+  recipe: {
+    type: [
+      {
+        ingredientId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Ingredient",
+          required: true,
+        },
+        quantity: {
+          type: Number,
+          required: true,
+          min: 0,
+        },
       },
-    },
-  ],
+    ],
+    default: [],
+  },
+  toppings: {
+    type: [mongoose.Schema.Types.ObjectId],
+    ref: "Topping",
+    default: [],
+  },
   customization: {
     type: customizationSchema,
     required: false,
-  },
-  recipe: {
-    type: [recipeItemSchema],
-    required: false,
-    default: [],
   },
 });
 
