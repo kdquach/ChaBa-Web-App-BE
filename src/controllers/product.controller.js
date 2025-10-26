@@ -17,24 +17,10 @@ const createProduct = catchAsync(async (req, res) => {
     image: imageUrl,
   };
 
+  console.log("Creating product with data:", productData);
+
   const product = await productService.createProduct(productData);
   res.status(httpStatus.CREATED).send(product);
-});
-
-const getProducts = catchAsync(async (req, res) => {
-  const filter = pick(req.query, ["name", "category", "status"]); // lọc field filter
-  const options = pick(req.query, ["sortBy", "limit", "page"]); // lọc field option
-  options.populate = "category"; // populate category details
-  const products = await productService.queryProducts(filter, options);
-  res.status(httpStatus.OK).send(products);
-});
-
-const getProduct = catchAsync(async (req, res) => {
-  const product = await productService.getProductById(req.params.productId);
-  if (!product) {
-    throw new ApiError(httpStatus.NOT_FOUND, "Product not found");
-  }
-  res.status(httpStatus.OK).send(product);
 });
 
 const updateProduct = catchAsync(async (req, res) => {
@@ -51,6 +37,22 @@ const updateProduct = catchAsync(async (req, res) => {
     req.params.productId,
     updateData
   );
+  res.status(httpStatus.OK).send(product);
+});
+
+const getProducts = catchAsync(async (req, res) => {
+  const filter = pick(req.query, ["name", "category", "status"]); // lọc field filter
+  const options = pick(req.query, ["sortBy", "limit", "page"]); // lọc field option
+  options.populate = "category"; // populate category details
+  const products = await productService.queryProducts(filter, options);
+  res.status(httpStatus.OK).send(products);
+});
+
+const getProduct = catchAsync(async (req, res) => {
+  const product = await productService.getProductById(req.params.productId);
+  if (!product) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Product not found");
+  }
   res.status(httpStatus.OK).send(product);
 });
 

@@ -5,12 +5,47 @@ const catchAsync = require("../utils/catchAsync");
 const { categoryService } = require("../services");
 
 const getCategories = catchAsync(async (req, res) => {
-  const filter = pick(req.query, ["name"]); // lọc field filter
+  // Hỗ trợ tìm kiếm theo tên dạng chứa (case-insensitive)
+  const filter = {};
+  if (req.query.name && String(req.query.name).trim()) {
+    filter.name = { $regex: String(req.query.name).trim(), $options: "i" };
+  }
   const options = pick(req.query, ["sortBy", "limit", "page"]); // lọc field option
   const categories = await categoryService.queryCategories(filter, options);
   res.status(httpStatus.OK).send(categories);
 });
+const getCategory = catchAsync(async (req, res) => {
+  const category = await categoryService.getCategoryById(req.params.categoryId);
+  if (!category) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Category not found");
+  }
+  res.status(httpStatus.OK).send(category);
+});
+
+const createCategory = catchAsync(async (req, res) => {
+  const categoryData = req.body;
+  const category = await categoryService.createCategory(categoryData);
+  res.status(httpStatus.CREATED).send(category);
+});
+
+const updateCategory = catchAsync(async (req, res) => {
+  const updateData = req.body;
+  const category = await categoryService.updateCategoryById(
+    req.params.categoryId,
+    updateData
+  );
+  res.status(httpStatus.OK).send(category);
+});
+
+const deleteCategory = catchAsync(async (req, res) => {
+  await categoryService.deleteCategoryById(req.params.categoryId);
+  res.status(httpStatus.NO_CONTENT).send();
+});
 
 module.exports = {
   getCategories,
+  createCategory,
+  getCategory,
+  updateCategory,
+  deleteCategory,
 };

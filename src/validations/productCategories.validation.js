@@ -3,7 +3,13 @@ const Joi = require("joi");
 
 const createProductCategories = {
   body: Joi.object().keys({
-    name: Joi.string().required(),
+    name: Joi.string()
+      .trim()
+      .pattern(/^[\p{L}\p{N}\s]+$/u)
+      .required()
+      .messages({
+        "string.pattern.base": "Tên danh mục không được chứa ký tự đặc biệt",
+      }),
     description: Joi.string().allow(""),
   }),
 };
@@ -12,7 +18,13 @@ const updateProductCategories = {
     categoryId: Joi.string().required(),
   }),
   body: Joi.object().keys({
-    name: Joi.string().required(),
+    name: Joi.string()
+      .trim()
+      .pattern(/^[\p{L}\p{N}\s]+$/u)
+      .required()
+      .messages({
+        "string.pattern.base": "Tên danh mục không được chứa ký tự đặc biệt",
+      }),
     description: Joi.string().allow(""),
   }),
 };

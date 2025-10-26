@@ -22,9 +22,31 @@ if (config.env !== "test") {
  * @param {string} text
  * @returns {Promise}
  */
-const sendEmail = async (to, subject, text) => {
-  const msg = { from: config.email.from, to, subject, text };
-  await transport.sendMail(msg);
+const sendEmail = async (to, subject, content) => {
+  const msg = { from: config.email.from, to, subject };
+
+  // If content looks like HTML, send as html, otherwise send as plain text
+  const isHtml = typeof content === "string" && /<[^>]+>/g.test(content);
+  if (isHtml) {
+    msg.html = content;
+  } else {
+    msg.text = content;
+  }
+
+  try {
+    const info = await transport.sendMail(msg);
+    // Log useful debug info so we can see if the message was accepted/rejected
+    logger.info("Email sent", {
+      messageId: info.messageId,
+      accepted: info.accepted,
+      rejected: info.rejected,
+    });
+    return info;
+  } catch (err) {
+    // Log the error so it's visible in application logs
+    logger.error(`Error sending email to ${to}: ${err.message}`);
+    throw err;
+  }
 };
 
 /**
@@ -59,9 +81,77 @@ If you did not create an account, then ignore this email.`;
   await sendEmail(to, subject, text);
 };
 
+/**
+ * Send verification OTP email
+ * @param {string} to
+ * @param {string} otp
+ * @returns {Promise}
+ */
+const sendVerificationOTP = async (to, otp) => {
+  const subject = "Xác minh tài khoản - Mã OTP";
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+    <!-- Logo -->
+      <div style="text-align: center; margin-bottom: 20px;">
+        <img src="https://res.cloudinary.com/dct761sh6/image/upload/v1760692274/thetrois-logo_om0kdj.jpg" 
+             alt="The Trois Milk Tea" 
+             style="width: 120px; height: auto;" />
+      </div>
+      <h2 style="color: #333;">Xác minh tài khoản của bạn</h2>
+      <p>Chào bạn,</p>
+      <p>Vui lòng sử dụng mã OTP sau để xác minh tài khoản:</p>
+      <div style="background-color: #f4f4f4; padding: 20px; text-align: center; margin: 20px 0;">
+        <h1 style="color: #007bff; font-size: 32px; margin: 0; letter-spacing: 5px;">${otp}</h1>
+      </div>
+      <p><strong>Lưu ý:</strong></p>
+      <ul>
+        <li>Mã OTP có hiệu lực trong 10 phút</li>
+        <li>Không chia sẻ mã này với bất kỳ ai</li>
+      </ul>
+      <p>Nếu bạn không yêu cầu mã này, vui lòng bỏ qua email này.</p>
+    </div>
+  `;
+  await sendEmail(to, subject, html);
+};
+
+/**
+ * Send reset password OTP email
+ * @param {string} to
+ * @param {string} otp
+ * @returns {Promise}
+ */
+const sendResetPasswordOTP = async (to, otp) => {
+  const subject = "Đặt lại mật khẩu - Mã OTP";
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+    <!-- Logo -->
+      <div style="text-align: center; margin-bottom: 20px;">
+        <img src="https://res.cloudinary.com/dct761sh6/image/upload/v1760692274/thetrois-logo_om0kdj.jpg" 
+             alt="The Trois Milk Tea" 
+             style="width: 120px; height: auto;" />
+      </div>
+      <h2 style="color: #333;">Đặt lại mật khẩu</h2>
+      <p>Chào bạn,</p>
+      <p>Bạn đã yêu cầu đặt lại mật khẩu. Vui lòng sử dụng mã OTP sau:</p>
+      <div style="background-color: #f4f4f4; padding: 20px; text-align: center; margin: 20px 0;">
+        <h1 style="color: #dc3545; font-size: 32px; margin: 0; letter-spacing: 5px;">${otp}</h1>
+      </div>
+      <p><strong>Lưu ý:</strong></p>
+      <ul>
+        <li>Mã OTP có hiệu lực trong 10 phút</li>
+        <li>Không chia sẻ mã này với bất kỳ ai</li>
+      </ul>
+      <p>Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.</p>
+    </div>
+  `;
+  await sendEmail(to, subject, html);
+};
+
 module.exports = {
   transport,
   sendEmail,
   sendResetPasswordEmail,
   sendVerificationEmail,
+  sendVerificationOTP,
+  sendResetPasswordOTP,
 };
