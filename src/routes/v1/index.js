@@ -5,6 +5,7 @@ const productRoute = require("./product.route");
 const categoryRoute = require("./category.route");
 const ingredientRoute = require("./ingredient.route");
 const toppingRoute = require("./topping.route");
+const feedbackRoute = require("./feedback.route");
 const docsRoute = require("./docs.route");
 const config = require("../../config/config");
 // const { path } = require("../../app");
@@ -35,6 +36,10 @@ const defaultRoutes = [
   {
     path: "/toppings",
     route: toppingRoute,
+  },
+  {
+    path: "/feedbacks",
+    route: feedbackRoute,
   },
 ];
 
