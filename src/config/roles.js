@@ -10,6 +10,12 @@ const allRoles = {
     "manageCategories",
     "getIngredients",
     "manageIngredients",
+    "getIngredientCategories",
+    "manageIngredientCategories",
+    "getOrders",
+    "manageOrders",
+    "getCart",
+    "manageCart",
   ],
 };
 
