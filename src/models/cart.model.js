@@ -42,6 +42,7 @@ const cartItemSchema = mongoose.Schema(
       default: [],
     },
     customization: {
+      size: { type: String, enum: ["S", "M", "L"] },
       ice: { type: Number, min: 0, max: 100 },
       sugar: { type: Number, min: 0, max: 100 },
       description: { type: String, trim: true },
