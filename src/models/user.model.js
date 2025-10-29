@@ -5,7 +5,7 @@ const { toJSON, paginate } = require("./plugins");
 const { roles } = require("../config/roles");
 
 const addressSchema = new mongoose.Schema({
-  street: { type: String, trim: true, required: true }, // Đường, số nhà (user nhập)
+  street: { type: String, trim: true, required: true },
   ward: {
     code: { type: String, required: true },
     name: { type: String, required: true },
@@ -17,6 +17,10 @@ const addressSchema = new mongoose.Schema({
   city: {
     code: { type: String, required: true },
     name: { type: String, required: true },
+  },
+  isDefault: {
+    type: Boolean,
+    default: false,
   },
 });
 
