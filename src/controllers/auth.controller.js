@@ -70,6 +70,16 @@ const changePassword = catchAsync(async (req, res) => {
   res.send({ message: "Đổi mật khẩu thành công" });
 });
 
+const updateProfile = catchAsync(async (req, res) => {
+  const userId = req.user.id;
+  const updateData = { ...req.body };
+  if (req.file) {
+    updateData.avatar = req.file.path;
+  }
+  const user = await userService.updateUserById(userId, updateData);
+  res.send({ message: "Cập nhật thông tin thành công", user });
+});
+
 const facebookLogin = catchAsync(async (req, res) => {
   const { token } = req.body;
   const user = await authService.facebookLogin(token);
@@ -144,4 +154,5 @@ module.exports = {
   forgotPasswordStep2,
   resetPasswordWithOTP,
   facebookLogin,
+  updateProfile,
 };

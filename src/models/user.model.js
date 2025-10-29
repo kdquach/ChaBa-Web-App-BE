@@ -59,7 +59,7 @@ const userSchema = mongoose.Schema(
         // chỉ check nếu provider là local hoặc có password
         if (value && (!value.match(/\d/) || !value.match(/[a-zA-Z]/))) {
           throw new Error(
-            "Password must contain at least one letter and one number"
+            "Password must contain at least one letter and one numbe"
           );
         }
       },
