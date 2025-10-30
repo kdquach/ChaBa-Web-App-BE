@@ -24,6 +24,7 @@ const createUser = {
             code: Joi.string().required(),
             name: Joi.string().required(),
           }).required(),
+          isDefault: Joi.boolean().optional(),
         })
       )
       .optional(),
