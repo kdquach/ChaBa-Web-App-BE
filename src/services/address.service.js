@@ -76,7 +76,7 @@ const updateAddress = async (userId, addressId, updateBody) => {
   });
 
   await user.save();
-  return address;
+  return user;
 };
 
 /**

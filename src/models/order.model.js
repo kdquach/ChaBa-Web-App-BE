@@ -64,6 +64,9 @@ const PaymentSchema = mongoose.Schema(
       enum: ["pending", "completed", "failed"],
       default: "pending",
     },
+    transactionId: { type: String },
+    amountPaid: { type: Number, default: 0 },
+    paidAt: { type: Date },
   },
   {
     timestamps: true,
@@ -77,12 +80,19 @@ const orderSchema = mongoose.Schema(
       ref: "User",
       required: true,
     },
+    shippingAddress: {
+      type: String,
+      required: true,
+    },
     products: [OrderItemSchema],
     totalAmount: {
       type: Number,
       required: true,
       min: 0,
     },
+    shippingFee: { type: Number, default: 0 },
+    note: { type: String }, // ghi chú toàn đơn hàng
+    deliveredAt: { type: Date },
     payment: PaymentSchema,
     status: {
       type: String,

@@ -1,4 +1,4 @@
-const Order = require("../models/oder.model");
+const Order = require("../models/order.model");
 
 const checkIfUserPurchasedProduct = async (userId, productId) => {
   const orders = await Order.findOne({
