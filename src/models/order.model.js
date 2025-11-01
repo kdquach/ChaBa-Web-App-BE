@@ -21,7 +21,7 @@ const OrderToppingSchema = mongoose.Schema({
     required: true,
     min: 0,
   },
-});
+}, { timestamps: false, _id: false });
 
 const OrderItemSchema = mongoose.Schema(
   {
@@ -46,9 +46,10 @@ const OrderItemSchema = mongoose.Schema(
       min: 1,
     },
     toppings: [OrderToppingSchema],
+    customization: { type: String }, // Mô tả tùy chỉnh (nếu có)
   },
   {
-    timestamps: true,
+    timestamps: false, _id: false
   }
 );
 
@@ -69,7 +70,7 @@ const PaymentSchema = mongoose.Schema(
     paidAt: { type: Date },
   },
   {
-    timestamps: true,
+    timestamps: false, _id: false
   }
 );
 
@@ -96,7 +97,13 @@ const orderSchema = mongoose.Schema(
     payment: PaymentSchema,
     status: {
       type: String,
-      enum: ["pending", "completed", "canceled"],
+      enum: [
+        'pending',
+        'confirmed',
+        'preparing',
+        'ready',
+        'completed',
+      ],
       default: "pending",
     },
   },
