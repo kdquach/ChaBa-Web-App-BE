@@ -47,6 +47,7 @@ const createOrder = {
                 'preparing',
                 'ready',
                 'completed',
+                'cancelled'
             )
             .default("pending"),
     }),
@@ -61,6 +62,7 @@ const updateOrderStatus = {
                 'preparing',
                 'ready',
                 'completed',
+                'cancelled'
             )
             .required()
     }),

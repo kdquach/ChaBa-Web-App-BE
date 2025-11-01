@@ -103,6 +103,7 @@ const orderSchema = mongoose.Schema(
         'preparing',
         'ready',
         'completed',
+        'cancelled'
       ],
       default: "pending",
     },
