@@ -94,6 +94,13 @@ router.patch(
   authController.changePassword
 );
 
+router.patch(
+  "/profile",
+  auth(),
+  upload.single('avatar'),
+  validate(authValidation.updateProfile),
+  authController.updateProfile
+);
 module.exports = router;
 
 /**
