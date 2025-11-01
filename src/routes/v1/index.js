@@ -10,6 +10,7 @@ const cartRoute = require("./cart.route");
 const toppingRoute = require("./topping.route");
 const feedbackRoute = require("./feedback.route");
 const docsRoute = require("./docs.route");
+const orderRoute = require("./order.route");
 const config = require("../../config/config");
 // const { path } = require("../../app");
 
@@ -55,6 +56,10 @@ const defaultRoutes = [
   {
     path: "/cart",
     route: cartRoute,
+  },
+  {
+    path: "/orders",
+    route: orderRoute,
   },
 ];
 
