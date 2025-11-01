@@ -10,6 +10,5 @@ const validate = require("../../middlewares/validate");
 router.post("/", mockAuth('user'), validate(orderValidation.createOrder), orderController.createOrder); // Tạo đơn hàng
 router.get("/", mockAuth('user'), orderController.getUserOrdersByStatus); // Lấy danh sách đơn hàng của user
 router.get("/:orderId", auth('getOrders'), validate(orderValidation.getOrderById), orderController.getOrderById); // Chi tiết đơn hàng
-
-
+router.patch('/:orderId/:status', mockAuth('user'), validate(orderValidation.updateOrderStatus), orderController.updateOrderStatus); // Hủy đơn hàng
 module.exports = router;
