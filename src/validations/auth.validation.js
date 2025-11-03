@@ -72,10 +72,12 @@ const googleLogin = {
 };
 
 const changePassword = {
-  body: Joi.object().keys({
-    currentPassword: Joi.string().required(),
-    newPassword: Joi.string().required().custom(password),
-  }).required(),
+  body: Joi.object()
+    .keys({
+      currentPassword: Joi.string().required(),
+      newPassword: Joi.string().required().custom(password),
+    })
+    .required(),
 };
 
 module.exports = {

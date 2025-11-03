@@ -33,10 +33,7 @@ const createCategory = async (categoryBody) => {
   const existing = await Category.findOne({ name: { $regex: nameRegex } });
   if (existing) {
     // 409: Conflict
-    throw new ApiError(
-      httpStatus.CONFLICT,
-      "Tên danh mục đã tồn tại"
-    );
+    throw new ApiError(httpStatus.CONFLICT, "Tên danh mục đã tồn tại");
   }
 
   const category = await Category.create({ ...categoryBody, name });
@@ -70,17 +67,14 @@ const updateCategoryById = async (categoryId, updateBody) => {
     if (!newName) {
       throw new ApiError(httpStatus.BAD_REQUEST, "Category name is required");
     }
-  const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const nameRegex = new RegExp(`^${escapeRegExp(newName)}$`, "i");
     const existing = await Category.findOne({
       _id: { $ne: categoryId },
       name: { $regex: nameRegex },
     });
     if (existing) {
-      throw new ApiError(
-        httpStatus.CONFLICT,
-        "Tên danh mục đã tồn tại"
-      );
+      throw new ApiError(httpStatus.CONFLICT, "Tên danh mục đã tồn tại");
     }
     updateBody.name = newName;
   }
