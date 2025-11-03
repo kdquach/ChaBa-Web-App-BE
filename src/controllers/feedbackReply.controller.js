@@ -1,12 +1,23 @@
+/* eslint-disable */
 const httpStatus = require("http-status");
 const catchAsync = require("../utils/catchAsync");
 const FeedbackReplyService = require("../services/feedbackReply.service");
+const pick = require("../utils/pick");
 
 class FeedbackReplyController {
   constructor() {
+    this.getReplies = catchAsync(this.getReplies.bind(this));
     this.addReply = catchAsync(this.addReply.bind(this));
     this.updateReply = catchAsync(this.updateReply.bind(this));
     this.deleteReply = catchAsync(this.deleteReply.bind(this));
+  }
+
+  async getReplies(req, res) {
+    const feedbackId = req.params.feedbackId;
+    const options = pick(req.query, ["sortBy", "limit", "page"]);
+
+    const result = await FeedbackReplyService.queryReplies(feedbackId, options);
+    res.status(httpStatus.OK).send(result);
   }
 
   async addReply(req, res) {

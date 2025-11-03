@@ -20,6 +20,12 @@ const getFeedbacks = {
   }),
 };
 
+const getFeedbackById = {
+  params: Joi.object().keys({
+    feedbackId: Joi.string().custom(objectId).required(),
+  }),
+};
+
 const updateFeedback = {
   params: Joi.object().keys({
     feedbackId: Joi.string().custom(objectId).required(),
@@ -34,7 +40,24 @@ const updateFeedback = {
     .min(1),
 };
 
+const deleteFeedback = {
+  params: Joi.object().keys({
+    feedbackId: Joi.string().custom(objectId).required(),
+  }),
+};
+
 // --- FEEDBACK REPLY CRUD (Nested Comments) ---
+
+const getReplies = {
+  params: Joi.object().keys({
+    feedbackId: Joi.string().custom(objectId).required(),
+  }),
+  query: Joi.object().keys({
+    sortBy: Joi.string(),
+    limit: Joi.number().integer(),
+    page: Joi.number().integer(),
+  }),
+};
 
 const addReply = {
   params: Joi.object().keys({
@@ -68,7 +91,10 @@ const deleteReply = {
 module.exports = {
   createFeedback,
   getFeedbacks,
+  getFeedbackById,
   updateFeedback,
+  deleteFeedback,
+  getReplies,
   addReply,
   updateReply,
   deleteReply,
