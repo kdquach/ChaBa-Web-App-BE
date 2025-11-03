@@ -68,7 +68,6 @@ const updateUser = {
     .unknown(true),
 };
 
-
 const deleteUser = {
   params: Joi.object().keys({
     userId: Joi.string().custom(objectId),
@@ -81,5 +80,4 @@ module.exports = {
   getUser,
   updateUser,
   deleteUser,
-
 };

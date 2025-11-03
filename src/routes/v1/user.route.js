@@ -29,7 +29,7 @@ router
   )
   .patch(
     auth("manageUsers"),
-    upload.single('avatar'),
+    upload.single("avatar"),
     validate(userValidation.updateUser),
     userController.updateUser
   )
