@@ -10,8 +10,16 @@ const createUser = catchAsync(async (req, res) => {
 });
 
 const getUsers = catchAsync(async (req, res) => {
-  const filter = pick(req.query, ["name", "role"]);
+  const filter = pick(req.query, ["name", "role", "type", "status", "search"]);
   const options = pick(req.query, ["sortBy", "limit", "page"]);
+  if (filter.search) {
+    filter.$or = [
+      { name: { $regex: filter.search, $options: "i" } },
+      { email: { $regex: filter.search, $options: "i" } },
+      { phone: { $regex: filter.search, $options: "i" } },
+    ];
+    delete filter.search; // xóa để tránh dùng nhầm sau này
+  }
   const result = await userService.queryUsers(filter, options);
   res.send(result);
 });
@@ -25,9 +33,20 @@ const getUser = catchAsync(async (req, res) => {
 });
 
 const updateUser = catchAsync(async (req, res) => {
-  const user = await userService.updateUserById(req.params.userId, req.body);
+  const updateData = { ...req.body };
+  if (req.body.addresses && typeof req.body.addresses === "string") {
+    updateData.addresses = JSON.parse(req.body.addresses);
+  }
+  // Nếu có file upload thì thêm avatar, nếu không thì giữ nguyên
+  if (req.file) {
+    updateData.avatar = req.file.path;
+  }
+
+  const user = await userService.updateUserById(req.params.userId, updateData);
   res.send(user);
 });
+
+
 
 const deleteUser = catchAsync(async (req, res) => {
   await userService.deleteUserById(req.params.userId);
@@ -40,4 +59,5 @@ module.exports = {
   getUser,
   updateUser,
   deleteUser,
+
 };

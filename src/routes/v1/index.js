@@ -4,6 +4,8 @@ const userRoute = require("./user.route");
 const productRoute = require("./product.route");
 const categoryRoute = require("./category.route");
 const ingredientRoute = require("./ingredient.route");
+const ingredientCategoryRoute = require("./ingredientCategory.route");
+const cartRoute = require("./cart.route");
 const toppingRoute = require("./topping.route");
 const feedbackRoute = require("./feedback.route");
 const docsRoute = require("./docs.route");
@@ -34,12 +36,18 @@ const defaultRoutes = [
     route: ingredientRoute,
   },
   {
+    path: "/ingredient-categories",
+    route: ingredientCategoryRoute,
+  },
+  {
     path: "/toppings",
     route: toppingRoute,
   },
   {
     path: "/feedbacks",
     route: feedbackRoute,
+    path: "/cart",
+    route: cartRoute,
   },
 ];
 
