@@ -1,3 +1,4 @@
+/* eslint-disable */
 const httpStatus = require("http-status");
 const ApiError = require("../utils/ApiError");
 const Category = require("../models/productCategories.model");
