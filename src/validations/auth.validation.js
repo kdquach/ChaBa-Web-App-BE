@@ -1,5 +1,5 @@
 const Joi = require("joi");
-const { password } = require("./custom.validation");
+const { password, phone } = require("./custom.validation");
 
 const registerStep1 = {
   body: Joi.object().keys({
@@ -80,6 +80,13 @@ const changePassword = {
     .required(),
 };
 
+const updateProfile = {
+  body: Joi.object().keys({
+    name: Joi.string().optional(),
+    phone: Joi.string().optional().custom(phone),
+  }).required()
+}
+
 module.exports = {
   registerStep1,
   registerStep2,
@@ -92,4 +99,5 @@ module.exports = {
   verifyEmail,
   googleLogin,
   changePassword,
+  updateProfile,
 };

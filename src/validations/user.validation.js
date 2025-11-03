@@ -3,39 +3,36 @@ const { password, objectId } = require("./custom.validation");
 const { roles } = require("../config/roles");
 
 const createUser = {
-  body: Joi.object()
-    .keys({
-      email: Joi.string().required().email(),
-      password: Joi.string().required().custom(password),
-      name: Joi.string().required(),
-      phone: Joi.string().required(),
-      addresses: Joi.array()
-        .items(
-          Joi.object({
-            street: Joi.string().required(),
-            ward: Joi.object({
-              code: Joi.string().required(),
-              name: Joi.string().required(),
-            }).required(),
-            district: Joi.object({
-              code: Joi.string().required(),
-              name: Joi.string().required(),
-            }).required(),
-            city: Joi.object({
-              code: Joi.string().required(),
-              name: Joi.string().required(),
-            }).required(),
-          })
-        )
-        .optional(),
-      permissions: Joi.array().items(Joi.string()).allow(null).optional(),
-      role: Joi.string()
-        .required()
-        .valid(...roles),
-      type: Joi.string().valid("staff", "user").optional(),
-      status: Joi.string().valid("active", "inactive").optional(),
-    })
-    .unknown(true),
+  body: Joi.object().keys({
+    email: Joi.string().required().email(),
+    password: Joi.string().required().custom(password),
+    name: Joi.string().required(),
+    phone: Joi.string().required(),
+    addresses: Joi.array()
+      .items(
+        Joi.object({
+          street: Joi.string().required(),
+          ward: Joi.object({
+            code: Joi.string().required(),
+            name: Joi.string().required(),
+          }).required(),
+          district: Joi.object({
+            code: Joi.string().required(),
+            name: Joi.string().required(),
+          }).required(),
+          city: Joi.object({
+            code: Joi.string().required(),
+            name: Joi.string().required(),
+          }).required(),
+          isDefault: Joi.boolean().optional(),
+        })
+      )
+      .optional(),
+    permissions: Joi.array().items(Joi.string()).allow(null).optional(),
+    role: Joi.string().required().valid(...roles),
+    type: Joi.string().valid("staff", "user").optional(),
+    status: Joi.string().valid("active", "inactive").optional(),
+  }).unknown(true),
 };
 
 const getUsers = {
