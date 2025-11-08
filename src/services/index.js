@@ -12,3 +12,4 @@ module.exports.toppingService = require("./topping.service");
 module.exports.feedbackService = require("./feedback.service");
 module.exports.feedbackReply = require("./feedbackReply.service");
 module.exports.otpService = require("./otp.service");
+module.exports.orderStaffService = require("./orderStaff.service");

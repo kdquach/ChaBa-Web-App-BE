@@ -12,6 +12,7 @@ const feedbackRoute = require("./feedback.route");
 const docsRoute = require("./docs.route");
 const orderRoute = require("./order.route");
 const config = require("../../config/config");
+const orderStaffRoute = require("./orderStaff.route");
 // const { path } = require("../../app");
 
 const router = express.Router();
@@ -60,6 +61,10 @@ const defaultRoutes = [
   {
     path: "/orders",
     route: orderRoute,
+  },
+  {
+    path: "/order-staffs",
+    route: orderStaffRoute,
   },
 ];
 
