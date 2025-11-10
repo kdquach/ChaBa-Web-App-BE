@@ -7,8 +7,7 @@ const cartController = require("../../controllers/cart.controller");
 const router = express.Router();
 
 /**
- * Thêm sản phẩm vào giỏ
- * Lấy giỏ hàng của user
+ * Thêm sản phẩm / Lấy / Xóa toàn bộ giỏ hàng
  */
 router
   .route("/")
@@ -21,7 +20,7 @@ router
   .delete(auth("manageCart"), cartController.clearCart);
 
 /**
- * Cập nhật hoặc xóa từng item trong giỏ
+ * Cập nhật hoặc Xóa từng item trong giỏ
  */
 router
   .route("/:itemId")
@@ -30,6 +29,10 @@ router
     validate(cartValidation.updateCartItem),
     cartController.updateCartItem
   )
-  .delete(auth("manageCart"), cartController.removeCartItem);
+  .delete(
+    auth("manageCart"),
+    validate(cartValidation.removeCartItem),
+    cartController.removeCartItem
+  );
 
 module.exports = router;
