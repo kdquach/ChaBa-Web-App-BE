@@ -3,25 +3,28 @@ const mongoose = require("mongoose");
 const { toJSON, paginate } = require("./plugins");
 // const productSchema = require("./product.model");
 
-const OrderToppingSchema = mongoose.Schema({
-  toppingId: {
-    // Tham chiếu đến Topping gốc
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Topping", // Giả định bạn đã tạo Topping Model
-    required: true,
+const OrderToppingSchema = mongoose.Schema(
+  {
+    toppingId: {
+      // Tham chiếu đến Topping gốc
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Topping", // Giả định bạn đã tạo Topping Model
+      required: true,
+    },
+    name: {
+      // Snapshot: Tên topping tại thời điểm mua
+      type: String,
+      required: true,
+    },
+    price: {
+      // Snapshot: Giá topping tại thời điểm mua
+      type: Number,
+      required: true,
+      min: 0,
+    },
   },
-  name: {
-    // Snapshot: Tên topping tại thời điểm mua
-    type: String,
-    required: true,
-  },
-  price: {
-    // Snapshot: Giá topping tại thời điểm mua
-    type: Number,
-    required: true,
-    min: 0,
-  },
-}, { timestamps: false, _id: false });
+  { timestamps: false, _id: false }
+);
 
 const OrderItemSchema = mongoose.Schema(
   {
@@ -46,10 +49,14 @@ const OrderItemSchema = mongoose.Schema(
       min: 1,
     },
     toppings: [OrderToppingSchema],
-    customization: { type: String }, // Mô tả tùy chỉnh (nếu có)
+    customization: {
+      size: { type: String, enum: ["S", "M", "L"] },
+      description: { type: String, trim: true },
+    },
   },
   {
-    timestamps: false, _id: false
+    timestamps: false,
+    _id: false,
   }
 );
 
@@ -70,7 +77,8 @@ const PaymentSchema = mongoose.Schema(
     paidAt: { type: Date },
   },
   {
-    timestamps: false, _id: false
+    timestamps: false,
+    _id: false,
   }
 );
 
@@ -98,12 +106,12 @@ const orderSchema = mongoose.Schema(
     status: {
       type: String,
       enum: [
-        'pending',
-        'confirmed',
-        'preparing',
-        'ready',
-        'completed',
-        'cancelled'
+        "pending",
+        "confirmed",
+        "preparing",
+        "ready",
+        "completed",
+        "cancelled",
       ],
       default: "pending",
     },
