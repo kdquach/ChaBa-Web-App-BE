@@ -24,6 +24,7 @@ const createUser = {
             code: Joi.string().required(),
             name: Joi.string().required(),
           }).required(),
+          isDefault: Joi.boolean().optional(),
         })
       )
       .optional(),
@@ -67,7 +68,6 @@ const updateUser = {
     .unknown(true),
 };
 
-
 const deleteUser = {
   params: Joi.object().keys({
     userId: Joi.string().custom(objectId),
@@ -80,5 +80,4 @@ module.exports = {
   getUser,
   updateUser,
   deleteUser,
-
 };

@@ -1,15 +1,16 @@
 /* eslint-disable prettier/prettier */
 /* eslint-disable no-console */
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-const MONGO_URI = 'mongodb+srv://kdquach03_db_user:12345@ac-dcn6uga.oiqfsq7.mongodb.net/ChaBaDB?retryWrites=true&w=majority';
+const MONGO_URI =
+  "mongodb+srv://kdquach03_db_user:12345@ac-dcn6uga.oiqfsq7.mongodb.net/ChaBaDB?retryWrites=true&w=majority";
 
 // ================= SCHEMA =================
 const UserSchema = new mongoose.Schema({
   name: String,
   email: String,
   password: String,
-  role: { type: String, enum: ['customer', 'admin'], default: 'customer' },
+  role: { type: String, enum: ["customer", "admin"], default: "customer" },
   addresses: [
     {
       street: String,
@@ -32,23 +33,31 @@ const IngredientSchema = new mongoose.Schema({
   name: String,
   unit: String,
   stock: Number,
-  categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'IngredientCategory' },
+  categoryId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "IngredientCategory",
+  },
 });
 
 const ProductSchema = new mongoose.Schema({
   name: String,
   price: Number,
   image: String,
-  categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'ProductCategory' },
+  categoryId: { type: mongoose.Schema.Types.ObjectId, ref: "ProductCategory" },
   toppings: [{ name: String, price: Number }],
-  recipe: [{ ingredientId: { type: mongoose.Schema.Types.ObjectId, ref: 'Ingredient' }, quantity: Number }],
+  recipe: [
+    {
+      ingredientId: { type: mongoose.Schema.Types.ObjectId, ref: "Ingredient" },
+      quantity: Number,
+    },
+  ],
 });
 
 const CartSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   items: [
     {
-      productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
+      productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
       name: String,
       quantity: Number,
       price: Number,
@@ -62,8 +71,8 @@ const CartSchema = new mongoose.Schema({
 });
 
 const OrderSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  status: { type: String, default: 'Pending' },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  status: { type: String, default: "Pending" },
   items: [Object], // giống cart items
   totalAmount: Number,
   payment: {
@@ -74,13 +83,13 @@ const OrderSchema = new mongoose.Schema({
 });
 
 const FeedbackSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
   rating: Number,
   comment: String,
   replies: [
     {
-      userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
       comment: String,
       createdAt: { type: Date, default: Date.now },
     },
@@ -88,14 +97,20 @@ const FeedbackSchema = new mongoose.Schema({
 });
 
 // ================= MODEL =================
-const User = mongoose.model('User', UserSchema);
-const ProductCategory = mongoose.model('ProductCategory', ProductCategorySchema);
-const IngredientCategory = mongoose.model('IngredientCategory', IngredientCategorySchema);
-const Ingredient = mongoose.model('Ingredient', IngredientSchema);
-const Product = mongoose.model('Product', ProductSchema);
-const Cart = mongoose.model('Cart', CartSchema);
-const Order = mongoose.model('Order', OrderSchema);
-const Feedback = mongoose.model('Feedback', FeedbackSchema);
+const User = mongoose.model("User", UserSchema);
+const ProductCategory = mongoose.model(
+  "ProductCategory",
+  ProductCategorySchema
+);
+const IngredientCategory = mongoose.model(
+  "IngredientCategory",
+  IngredientCategorySchema
+);
+const Ingredient = mongoose.model("Ingredient", IngredientSchema);
+const Product = mongoose.model("Product", ProductSchema);
+const Cart = mongoose.model("Cart", CartSchema);
+const Order = mongoose.model("Order", OrderSchema);
+const Feedback = mongoose.model("Feedback", FeedbackSchema);
 
 // ================= SEED FUNCTION =================
 async function seed() {
@@ -103,37 +118,49 @@ async function seed() {
     useNewUrlParser: true,
     useUnifiedTopology: true,
   });
-  console.log('✅ Connected to MongoDB');
+  console.log("✅ Connected to MongoDB");
 
   await mongoose.connection.db.dropDatabase();
-  console.log('🗑️ Old database dropped');
+  console.log("🗑️ Old database dropped");
 
   // Users
   const user = await User.create({
-    name: 'Nguyen Van A',
-    email: 'a@example.com',
-    password: '123456',
-    role: 'customer',
-    addresses: [{ street: '123 Lê Lợi', city: 'HCM', district: '1', ward: 'Bến Nghé' }],
+    name: "Nguyen Van A",
+    email: "a@example.com",
+    password: "123456",
+    role: "customer",
+    addresses: [
+      { street: "123 Lê Lợi", city: "HCM", district: "1", ward: "Bến Nghé" },
+    ],
   });
 
   // Categories
-  const catMilkTea = await ProductCategory.create({ name: 'Milk Tea' });
-  const ingCatTea = await IngredientCategory.create({ name: 'Tea Base' });
+  const catMilkTea = await ProductCategory.create({ name: "Milk Tea" });
+  const ingCatTea = await IngredientCategory.create({ name: "Tea Base" });
 
   // Ingredients
-  const ingTea = await Ingredient.create({ name: 'Black Tea', unit: 'gram', stock: 5000, categoryId: ingCatTea._id });
-  const ingMilk = await Ingredient.create({ name: 'Milk Powder', unit: 'gram', stock: 3000, categoryId: ingCatTea._id });
+  const ingTea = await Ingredient.create({
+    name: "Black Tea",
+    unit: "gram",
+    stock: 5000,
+    categoryId: ingCatTea._id,
+  });
+  const ingMilk = await Ingredient.create({
+    name: "Milk Powder",
+    unit: "gram",
+    stock: 3000,
+    categoryId: ingCatTea._id,
+  });
 
   // Products
   const product = await Product.create({
-    name: 'Classic Milk Tea',
+    name: "Classic Milk Tea",
     price: 35000,
-    image: '/images/milktea.jpg',
+    image: "/images/milktea.jpg",
     categoryId: catMilkTea._id,
     toppings: [
-      { name: 'Pearl', price: 5000 },
-      { name: 'Pudding', price: 7000 },
+      { name: "Pearl", price: 5000 },
+      { name: "Pudding", price: 7000 },
     ],
     recipe: [
       { ingredientId: ingTea._id, quantity: 5 },
@@ -150,8 +177,8 @@ async function seed() {
         name: product.name,
         quantity: 2,
         price: 35000,
-        toppings: [{ name: 'Pearl', price: 5000 }],
-        customizations: { ice: '50%', sugar: '70%' },
+        toppings: [{ name: "Pearl", price: 5000 }],
+        customizations: { ice: "50%", sugar: "70%" },
       },
     ],
   });
@@ -159,18 +186,18 @@ async function seed() {
   // Order
   await Order.create({
     userId: user._id,
-    status: 'Pending',
+    status: "Pending",
     items: [
       {
         productId: product._id,
         name: product.name,
         quantity: 2,
         price: 35000,
-        toppings: [{ name: 'Pearl', price: 5000 }],
+        toppings: [{ name: "Pearl", price: 5000 }],
       },
     ],
     totalAmount: 80000,
-    payment: { method: 'Cash', status: 'Unpaid' },
+    payment: { method: "Cash", status: "Unpaid" },
   });
 
   // Feedback
@@ -178,16 +205,16 @@ async function seed() {
     userId: user._id,
     productId: product._id,
     rating: 5,
-    comment: 'Rất ngon!',
+    comment: "Rất ngon!",
     replies: [
       {
         userId: user._id, // có thể là admin/staff trả lời
-        comment: 'Cảm ơn bạn đã ủng hộ!',
+        comment: "Cảm ơn bạn đã ủng hộ!",
       },
     ],
   });
 
-  console.log('🎉 Sample data inserted!');
+  console.log("🎉 Sample data inserted!");
   await mongoose.disconnect();
 }
 

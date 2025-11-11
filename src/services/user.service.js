@@ -12,9 +12,7 @@ const createUser = async (userBody) => {
   if (await User.isEmailTaken(userBody.email)) {
     throw new ApiError(httpStatus.BAD_REQUEST, "Email already taken");
   }
-  console.log("Creating new user:", userBody);
   const user = await User.create(userBody);
-  console.log("Created user:", user);
 
   // Verify user was actually saved by querying it back
   const savedUser = await User.findOne({ email: userBody.email });
@@ -62,6 +60,7 @@ const getUserByEmail = async (email) => {
  * @returns {Promise<User>}
  */
 const updateUserById = async (userId, updateBody) => {
+  console.log("🚀 ~ updateUserById ~ updateBody:", updateBody)
   if (updateBody.email && (await User.isEmailTaken(updateBody.email, userId))) {
     throw new ApiError(httpStatus.BAD_REQUEST, "Email already taken");
   }
@@ -95,5 +94,4 @@ module.exports = {
   getUserByEmail,
   updateUserById,
   deleteUserById,
-
 };

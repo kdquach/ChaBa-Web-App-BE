@@ -1,5 +1,5 @@
 const Joi = require("joi");
-const { password } = require("./custom.validation");
+const { password, phone } = require("./custom.validation");
 
 const registerStep1 = {
   body: Joi.object().keys({
@@ -72,11 +72,20 @@ const googleLogin = {
 };
 
 const changePassword = {
-  body: Joi.object().keys({
-    currentPassword: Joi.string().required(),
-    newPassword: Joi.string().required().custom(password),
-  }).required(),
+  body: Joi.object()
+    .keys({
+      currentPassword: Joi.string().required(),
+      newPassword: Joi.string().required().custom(password),
+    })
+    .required(),
 };
+
+const updateProfile = {
+  body: Joi.object().keys({
+    name: Joi.string().optional(),
+    phone: Joi.string().optional().custom(phone),
+  }).required()
+}
 
 module.exports = {
   registerStep1,
@@ -90,4 +99,5 @@ module.exports = {
   verifyEmail,
   googleLogin,
   changePassword,
+  updateProfile,
 };

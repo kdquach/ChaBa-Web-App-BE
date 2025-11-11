@@ -21,7 +21,7 @@ const OrderToppingSchema = mongoose.Schema({
     required: true,
     min: 0,
   },
-});
+}, { timestamps: false, _id: false });
 
 const OrderItemSchema = mongoose.Schema(
   {
@@ -46,9 +46,10 @@ const OrderItemSchema = mongoose.Schema(
       min: 1,
     },
     toppings: [OrderToppingSchema],
+    customization: { type: String }, // Mô tả tùy chỉnh (nếu có)
   },
   {
-    timestamps: true,
+    timestamps: false, _id: false
   }
 );
 
@@ -64,9 +65,12 @@ const PaymentSchema = mongoose.Schema(
       enum: ["pending", "completed", "failed"],
       default: "pending",
     },
+    transactionId: { type: String },
+    amountPaid: { type: Number, default: 0 },
+    paidAt: { type: Date },
   },
   {
-    timestamps: true,
+    timestamps: false, _id: false
   }
 );
 
@@ -77,16 +81,30 @@ const orderSchema = mongoose.Schema(
       ref: "User",
       required: true,
     },
+    shippingAddress: {
+      type: String,
+      required: true,
+    },
     products: [OrderItemSchema],
     totalAmount: {
       type: Number,
       required: true,
       min: 0,
     },
+    shippingFee: { type: Number, default: 0 },
+    note: { type: String }, // ghi chú toàn đơn hàng
+    deliveredAt: { type: Date },
     payment: PaymentSchema,
     status: {
       type: String,
-      enum: ["pending", "completed", "canceled"],
+      enum: [
+        'pending',
+        'confirmed',
+        'preparing',
+        'ready',
+        'completed',
+        'cancelled'
+      ],
       default: "pending",
     },
   },

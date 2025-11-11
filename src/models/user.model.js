@@ -5,7 +5,7 @@ const { toJSON, paginate } = require("./plugins");
 const { roles } = require("../config/roles");
 
 const addressSchema = new mongoose.Schema({
-  street: { type: String, trim: true, required: true }, // Đường, số nhà (user nhập)
+  street: { type: String, trim: true, required: true },
   ward: {
     code: { type: String, required: true },
     name: { type: String, required: true },
@@ -17,6 +17,10 @@ const addressSchema = new mongoose.Schema({
   city: {
     code: { type: String, required: true },
     name: { type: String, required: true },
+  },
+  isDefault: {
+    type: Boolean,
+    default: false,
   },
 });
 
@@ -59,7 +63,7 @@ const userSchema = mongoose.Schema(
         // chỉ check nếu provider là local hoặc có password
         if (value && (!value.match(/\d/) || !value.match(/[a-zA-Z]/))) {
           throw new Error(
-            "Password must contain at least one letter and one number"
+            "Password must contain at least one letter and one numbe"
           );
         }
       },
@@ -160,6 +164,6 @@ userSchema.pre("save", async function (next) {
 /**
  * @typedef User
  */
-const User = mongoose.model("users", userSchema);
+const User = mongoose.model("User", userSchema);
 
 module.exports = User;

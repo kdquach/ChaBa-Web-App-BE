@@ -5,25 +5,24 @@
 const mongoose = require("mongoose");
 const { toJSON, paginate } = require("./plugins");
 
-// Schema cho từng topping trong sản phẩm trong giỏ
-// const cartToppingSchema = mongoose.Schema(
-//   {
-//     toppingId: {
-//       type: mongoose.Schema.Types.ObjectId,
-//       ref: "Topping",
-//       required: true,
-//     },
-//     quantity: {
-//       type: Number,
-//       required: true,
-//       min: 1,
-//       default: 1,
-//     },
-//   },
-//   { id: false }
-// );
+// Schema cho từng topping được chọn trong CartItem
+const cartToppingSchema = mongoose.Schema(
+  {
+    toppingId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Topping",
+      required: true,
+    },
+    quantity: {
+      type: Number,
+      default: 1,
+      min: 1,
+    },
+  },
+  { _id: false }
+);
 
-// Schema cho từng item trong giỏ
+// Schema cho từng item trong giỏ hàng
 const cartItemSchema = mongoose.Schema(
   {
     productId: {
@@ -37,10 +36,10 @@ const cartItemSchema = mongoose.Schema(
       min: 1,
       default: 1,
     },
-    // toppings: {
-    //   type: [cartToppingSchema],
-    //   default: [],
-    // },
+    toppings: {
+      type: [cartToppingSchema],
+      default: [],
+    },
     customization: {
       size: { type: String, enum: ["S", "M", "L"] },
       ice: { type: Number, min: 0, max: 100 },
@@ -56,7 +55,7 @@ const cartItemSchema = mongoose.Schema(
   { id: true }
 );
 
-// Schema chính của Cart
+// Schema chính của giỏ hàng
 const cartSchema = mongoose.Schema(
   {
     userId: {
@@ -90,51 +89,42 @@ cartSchema.plugin(toJSON);
 cartSchema.plugin(paginate);
 
 // Hàm tính tổng giá giỏ hàng
-// cartSchema.methods.calculateTotal = async function () {
-//   let total = 0;
-
-//   for (const item of this.items) {
-//     const product = await mongoose.model("Product").findById(item.productId);
-
-//     if (!product) continue;
-
-//     let itemTotal = product.price * item.quantity;
-
-//     if (item.toppings && item.toppings.length > 0) {
-//       for (const t of item.toppings) {
-//         const topping = await mongoose.model("Topping").findById(t.toppingId);
-//         if (topping) {
-//           itemTotal += topping.price * (t.quantity || 1);
-//         }
-//       }
-//     }
-
-//     total += itemTotal;
-//   }
-
-//   this.totalPrice = total;
-//   return total;
-// };
-
 cartSchema.methods.calculateTotal = async function () {
   let total = 0;
 
   for (const item of this.items) {
+    // Lấy sản phẩm
     const product = await mongoose
       .model("Product")
       .findById(item.productId)
-      .populate("toppings"); // để lấy thông tin giá topping
+      .populate("toppings");
 
     if (!product) continue;
 
-    // Giá cơ bản của sản phẩm
+    // Giá cơ bản
     let itemTotal = product.price * item.quantity;
 
-    // Cộng giá topping gắn sẵn trong product
-    if (product.toppings && product.toppings.length > 0) {
-      for (const topping of product.toppings) {
-        if (topping && topping.price) {
-          itemTotal += topping.price * item.quantity;
+    // Lấy size
+    const size = item.customization?.size;
+    if (size === "M") itemTotal += 5000 * item.quantity;
+    else if (size === "L") itemTotal += 10000 * item.quantity;
+
+    // Cộng topping
+    if (item.toppings && item.toppings.length > 0) {
+      for (const t of item.toppings) {
+        // t.toppingId có thể là ObjectId hoặc object
+        let topping;
+        if (typeof t.toppingId === "object" && t.toppingId.price) {
+          topping = t.toppingId; // đã populate
+        } else {
+          topping = await mongoose.model("Topping").findById(t.toppingId);
+        }
+
+        if (!topping) continue;
+
+        // Chỉ cộng nếu topping thuộc danh sách topping của product
+        if (product.toppings.some((tp) => tp._id.equals(topping._id))) {
+          itemTotal += topping.price * (t.quantity || 1);
         }
       }
     }
@@ -146,33 +136,30 @@ cartSchema.methods.calculateTotal = async function () {
   return total;
 };
 
-// 🧠 Middleware: tự động tính totalPrice trước khi lưu (create, save)
+// Middleware: tự động tính lại tổng khi lưu (khi thêm mới hoặc cập nhật)
 cartSchema.pre("save", async function (next) {
   try {
     await this.calculateTotal();
     next();
-  } catch (error) {
-    next(error);
+  } catch (err) {
+    next(err);
   }
 });
 
-// ⚙️ Middleware: tự động tính lại totalPrice khi cập nhật (findOneAndUpdate)
+// Middleware: tự động tính lại tổng khi cập nhật
 cartSchema.pre("findOneAndUpdate", async function (next) {
   try {
     const update = this.getUpdate();
 
-    // Nếu có thay đổi items thì cần tính lại total
+    // Nếu có thay đổi items => cần tính lại tổng
     if (update.items || update.$set?.items) {
       const docToUpdate = await this.model.findOne(this.getQuery());
       if (docToUpdate) {
-        // Cập nhật items tạm thời để tính lại total
         if (update.items) docToUpdate.items = update.items;
         if (update.$set?.items) docToUpdate.items = update.$set.items;
 
         await docToUpdate.calculateTotal();
         update.totalPrice = docToUpdate.totalPrice;
-
-        // Cập nhật lại vào query để lưu
         this.setUpdate(update);
       }
     }
@@ -184,5 +171,4 @@ cartSchema.pre("findOneAndUpdate", async function (next) {
 });
 
 const Cart = mongoose.model("Cart", cartSchema);
-
 module.exports = Cart;
