@@ -23,7 +23,7 @@ class FeedbackReplyController {
   async addReply(req, res) {
     const userId = req.user.id;
     const userRole = req.user.role;
-    const { feedbackId } = req.params.feedbackId;
+    const { feedbackId } = req.params;
     const reply = await FeedbackReplyService.addReply(
       feedbackId,
       req.body,
