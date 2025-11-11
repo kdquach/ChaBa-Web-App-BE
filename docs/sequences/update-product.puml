@@ -1,0 +1,170 @@
+@startuml Update Product Sequence
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam sequenceMessageAlign center
+skinparam BoxPadding 10
+
+title Update Product Flow - TheTrois System
+
+actor "Admin User" as Admin
+boundary "Product Management\nPage" as FE
+participant ":API Gateway\n(Express Router)" as Router
+participant ":authMiddleware" as AuthMW
+participant ":uploadMiddleware" as UploadMW
+participant ":validateMiddleware" as ValidateMW
+participant ":productController" as Controller
+participant ":productService" as Service
+participant ":Cloudinary API" as Cloudinary
+database "MongoDB\n(Product Collection)" as DB
+
+== Load Existing Product ==
+
+Admin -> FE: Click edit product
+activate FE
+
+FE -> Router: GET /v1/products/:productId\nHeaders: {Authorization: Bearer <token>}
+activate Router
+
+Router -> AuthMW: auth("getProducts")
+activate AuthMW
+AuthMW -> AuthMW: Verify JWT token
+AuthMW --> Router: Next()
+deactivate AuthMW
+
+Router -> Controller: getProduct(req, res)
+activate Controller
+Controller -> Service: getProductById(productId)
+activate Service
+Service -> DB: Product.findById(productId)
+activate DB
+DB --> Service: Return product data
+deactivate DB
+Service --> Controller: Return product
+deactivate Service
+Controller --> Router: 200 OK {product}
+deactivate Controller
+Router --> FE: Product data
+deactivate Router
+
+FE -> FE: Populate form with\nexisting product data
+FE --> Admin: Display edit form
+
+== Update Product ==
+
+Admin -> FE: Modify fields\n(name, price, image, etc.)
+Admin -> FE: Submit form
+
+FE -> FE: Create FormData with\nupdated fields
+note right of FE
+  FormData includes only
+  modified fields:
+  - name, price, categoryId
+  - image (if changed)
+  - recipe, toppings
+end note
+
+FE -> Router: PATCH /v1/products/:productId\nHeaders: {Authorization: Bearer <token>}\nBody: FormData
+activate Router
+
+Router -> AuthMW: auth("manageProducts")
+activate AuthMW
+AuthMW -> AuthMW: Verify JWT token\nCheck permissions
+alt Invalid Token or No Permission
+    AuthMW --> Router: 401/403 Error
+    Router --> FE: Error response
+    FE --> Admin: Show error message
+else Valid
+    AuthMW --> Router: Next()
+    deactivate AuthMW
+end
+
+== Upload New Image (if provided) ==
+
+Router -> UploadMW: upload.single("image")
+activate UploadMW
+
+alt Image Provided
+    UploadMW -> Cloudinary: Upload new image
+    activate Cloudinary
+    Cloudinary --> UploadMW: Return new image URL
+    deactivate Cloudinary
+    UploadMW -> UploadMW: Set req.file.path
+else No New Image
+    UploadMW -> UploadMW: Skip upload
+end
+
+UploadMW --> Router: Next()
+deactivate UploadMW
+
+== Validation ==
+
+Router -> ValidateMW: validate(productValidation.updateProduct)
+activate ValidateMW
+ValidateMW -> ValidateMW: Validate params.productId\nValidate body fields
+alt Validation Failed
+    ValidateMW --> Router: 400 Bad Request
+    Router --> FE: Validation errors
+    FE --> Admin: Show errors
+else Valid
+    ValidateMW --> Router: Next()
+    deactivate ValidateMW
+end
+
+== Update Process ==
+
+Router -> Controller: updateProduct(req, res)
+activate Controller
+
+Controller -> Controller: Extract new image URL\nif req.file exists
+Controller -> Controller: Prepare updateData:\n{...req.body, image: newImageUrl}
+
+Controller -> Service: updateProductById(productId, updateData)
+activate Service
+
+Service -> DB: Product.findById(productId)
+activate DB
+DB --> Service: Return product
+deactivate DB
+
+alt Product Not Found
+    Service --> Controller: throw ApiError(404,\n"Product not found")
+    Controller --> Router: 404 Not Found
+    Router --> FE: Error response
+    FE --> Admin: "Product not found"
+end
+
+== Delete Old Image (if new image provided) ==
+
+alt New Image Provided
+    Service -> Service: Extract public_id\nfrom old image URL
+    Service -> Cloudinary: cloudinary.uploader.destroy(public_id)
+    activate Cloudinary
+    note right of Service
+      Delete old image from
+      Cloudinary to save storage
+    end note
+    Cloudinary --> Service: Deletion confirmed
+    deactivate Cloudinary
+end
+
+Service -> Service: Object.assign(product, updateData)
+Service -> DB: product.save()
+activate DB
+DB -> DB: Validate & update\ntimestamps
+DB --> Service: Return updated product
+deactivate DB
+
+Service --> Controller: Return updated product
+deactivate Service
+
+Controller --> Router: 200 OK {updated product}
+deactivate Controller
+
+Router --> FE: Success response
+deactivate Router
+
+FE -> FE: Update product list\nRefresh view
+FE --> Admin: "Product updated successfully!"
+deactivate FE
+
+@enduml

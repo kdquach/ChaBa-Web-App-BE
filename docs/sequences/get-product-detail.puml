@@ -1,0 +1,179 @@
+@startuml Get Product Detail Sequence
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam sequenceMessageAlign center
+skinparam BoxPadding 10
+
+title Get Product Detail Flow - TheTrois System
+
+actor "User" as User
+boundary "Product Detail\nPage" as FE
+participant ":API Gateway\n(Express Router)" as Router
+participant ":authMiddleware" as AuthMW
+participant ":validateMiddleware" as ValidateMW
+participant ":productController" as Controller
+participant ":productService" as Service
+database "MongoDB\n(Product Collection)" as DB
+
+== Navigate to Product Detail ==
+
+User -> FE: Click product card or\nenter product URL
+activate FE
+
+FE -> FE: Extract productId\nfrom route params
+
+note right of FE
+  Route: /products/:productId
+  Example: /products/507f1f77bcf86cd799439011
+end note
+
+FE -> Router: GET /v1/products/:productId\nHeaders: {Authorization: Bearer <token>}
+activate Router
+
+== Authentication ==
+
+Router -> AuthMW: auth("getProducts")
+activate AuthMW
+
+AuthMW -> AuthMW: Verify JWT token\nCheck "getProducts" permission
+
+alt Invalid Token or No Permission
+    AuthMW --> Router: 401 Unauthorized /\n403 Forbidden
+    Router --> FE: Error response
+    FE --> User: Redirect to login or\nshow permission error
+else Valid Token
+    AuthMW -> AuthMW: Attach req.user
+    AuthMW --> Router: Next()
+    deactivate AuthMW
+end
+
+== Validation ==
+
+Router -> ValidateMW: validate(productValidation.getProduct)
+activate ValidateMW
+
+ValidateMW -> ValidateMW: Validate params.productId\n(must be valid ObjectId)
+
+alt Invalid Product ID Format
+    ValidateMW --> Router: 400 Bad Request\n"Invalid product ID"
+    Router --> FE: Validation error
+    FE --> User: "Invalid product"
+else Valid ObjectId
+    ValidateMW --> Router: Next()
+    deactivate ValidateMW
+end
+
+== Fetch Product Details ==
+
+Router -> Controller: getProduct(req, res)
+activate Controller
+
+Controller -> Service: getProductById(req.params.productId)
+activate Service
+
+Service -> DB: Product.findById(productId)\n.populate("categoryId")\n.populate("toppings")\n.populate("recipe.ingredientId")
+activate DB
+
+note right of DB
+  MongoDB operations:
+  1. Find document by _id
+  2. Populate category reference
+  3. Populate toppings array
+  4. Populate ingredients in recipe
+end note
+
+alt Product Not Found
+    DB --> Service: Return null
+    deactivate DB
+    
+    Service --> Controller: Return null
+    deactivate Service
+    
+    Controller -> Controller: Check if product exists
+    Controller --> Router: throw ApiError(404,\n"Product not found")
+    Router --> FE: 404 Not Found
+    FE --> User: "Product not found"\nor redirect to 404 page
+    
+else Product Found
+    DB --> Service: Return product with\npopulated references
+    deactivate DB
+    
+    note right of Service
+      Response structure:
+      {
+        _id: "507f...",
+        name: "Trà Sữa Trân Châu",
+        description: "...",
+        price: 45000,
+        image: "https://cloudinary.../image.jpg",
+        categoryId: {
+          _id: "...",
+          name: "Trà Sữa",
+          description: "..."
+        },
+        status: "Đang bán",
+        toppings: [
+          {_id: "...", name: "Trân châu", price: 5000},
+          {_id: "...", name: "Thạch dừa", price: 5000}
+        ],
+        recipe: [
+          {
+            ingredientId: {
+              _id: "...",
+              name: "Trà đen",
+              unit: "gram"
+            },
+            quantity: 50
+          },
+          {
+            ingredientId: {
+              _id: "...",
+              name: "Sữa tươi",
+              unit: "ml"
+            },
+            quantity: 200
+          }
+        ],
+        customization: {
+          size: ["S", "M", "L"],
+          ice: ["Ít đá", "Bình thường", "Nhiều đá"],
+          sugar: ["0%", "50%", "100%"]
+        },
+        createdAt: "2025-10-20T...",
+        updatedAt: "2025-10-30T..."
+      }
+    end note
+    
+    Service --> Controller: Return product
+    deactivate Service
+    
+    Controller --> Router: 200 OK {product}
+    deactivate Controller
+    
+    Router --> FE: Success response
+    deactivate Router
+    
+    == Render Product Detail ==
+    
+    FE -> FE: Parse product data
+    FE -> FE: Display product info:\n- Name, description, price\n- Product image\n- Category badge
+    FE -> FE: Render available toppings\n(checkboxes or pills)
+    FE -> FE: Render customization options:\n- Size selector\n- Ice level\n- Sugar level
+    FE -> FE: Show "Add to Cart" button\nwith quantity selector
+    
+    note right of FE
+      UI Components:
+      - Image gallery/carousel
+      - Product details section
+      - Toppings selection
+      - Customization options
+      - Quantity picker
+      - Add to cart button
+      - Related products (optional)
+    end note
+    
+    FE --> User: Display product detail page
+    deactivate FE
+end
+
+@enduml

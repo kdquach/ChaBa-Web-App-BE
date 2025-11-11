@@ -1,0 +1,110 @@
+@startuml Order Management - Activity Diagram
+skinparam activityFontSize 11
+skinparam activityDiamondFontSize 10
+skinparam activityArrowFontSize 10
+skinparam backgroundColor #FFFFFF
+skinparam activity {
+  BackgroundColor #87CEEB
+  BorderColor #4682B4
+  FontColor #000000
+}
+
+title Order Management - Activity Diagram
+
+|Customer|
+start
+:Browse products;
+:Add products to cart;
+:View cart;
+
+:Proceed to checkout;
+
+|System|
+:Validate cart items;
+:Check product availability;
+
+if (All items available?) then (yes)
+  :Calculate total amount
+  (products + toppings);
+  
+  :Display order summary;
+  
+  |Customer|
+  :Review order details;
+  :Select payment method
+  (cash/card);
+  :Confirm order;
+  
+  |System|
+  :Create order with status "pending";
+  :Snapshot product data
+  (name, price, toppings);
+  :Save order to database;
+  :Clear customer cart;
+  
+  if (Payment method = card?) then (yes)
+    :Process payment;
+    
+    if (Payment successful?) then (yes)
+      :Update payment status
+      to "completed";
+      :Update order status
+      to "confirmed";
+    else (no)
+      :Update payment status
+      to "failed";
+      :Notify customer;
+      
+      |Customer|
+      :View payment error;
+      stop
+    endif
+  else (cash)
+    :Set payment status
+    to "pending";
+  endif
+  
+  :Send order confirmation email;
+  :Notify warehouse staff;
+  
+  |Customer|
+  :View order confirmation;
+  
+  |Warehouse Staff|
+  :Receive order notification;
+  :View order details;
+  :Prepare order;
+  
+  :Update order status
+  to "processing";
+  
+  |System|
+  :Update order in database;
+  :Notify customer of status;
+  
+  |Warehouse Staff|
+  :Complete order preparation;
+  :Update order status
+  to "completed";
+  
+  |System|
+  :Update order in database;
+  :Send completion notification;
+  
+  |Customer|
+  :Receive order;
+  :View order completed;
+  
+else (no)
+  |System|
+  :Return error message
+  (unavailable items);
+  
+  |Customer|
+  :View error notification;
+  :Update cart;
+endif
+
+stop
+
+@enduml

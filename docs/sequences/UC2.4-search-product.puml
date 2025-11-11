@@ -1,0 +1,298 @@
+@startuml UC2.4 Search Product
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam sequenceMessageAlign center
+skinparam BoxPadding 10
+
+title UC2.4 - Search Product
+
+actor "Guest/User" as User
+boundary "Product Catalog\nPage" as FE
+participant ":API Gateway\n(Express Router)" as Router
+participant ":authMiddleware" as AuthMW
+participant ":validateMiddleware" as ValidateMW
+participant ":productController" as Controller
+participant ":productService" as Service
+database "MongoDB\n(Product Collection)" as DB
+
+== User Enters Search Query ==
+
+User -> FE: Type in search box:\n"trà sữa"
+activate FE
+
+FE -> FE: Debounce input\n(wait 300ms after typing stops)
+
+note right of FE
+  Search UI:
+  ┌──────────────────────────┐
+  │ 🔍 [trà sữa_______] [X] │
+  │                          │
+  │ Searching...             │
+  └──────────────────────────┘
+  
+  Debouncing prevents
+  API spam during typing
+end note
+
+FE --> User: Show loading indicator
+
+== Send Search Request ==
+
+FE -> Router: GET /v1/products?\nname=trà sữa&\npage=1&limit=12
+activate Router
+
+note right of FE
+  Search query parameters:
+  - name: "trà sữa" (search term)
+  - page: 1 (reset to first page)
+  - limit: 12 (results per page)
+  - Other filters can be combined
+end note
+
+== Authentication (Optional) ==
+
+Router -> AuthMW: auth("getProducts")
+activate AuthMW
+
+AuthMW -> AuthMW: Verify token\n(optional for guests)
+
+AuthMW --> Router: Next()
+deactivate AuthMW
+
+== Validation ==
+
+Router -> ValidateMW: validate(productValidation.getProducts)
+activate ValidateMW
+
+ValidateMW -> ValidateMW: Validate query params:\n- name (string, optional)\n- page, limit (integers)
+
+ValidateMW --> Router: Next()
+deactivate ValidateMW
+
+== Build Search Filter ==
+
+Router -> Controller: getProducts(req, res)
+activate Controller
+
+Controller -> Controller: Build filter with\nname search pattern
+
+note right of Controller
+  If req.query.name exists:
+  filter.name = {
+    $regex: "trà sữa",
+    $options: "i"  // case-insensitive
+  }
+  
+  MongoDB will use index on name
+  field for better performance
+end note
+
+Controller -> Controller: filter = {\n  name: {\n    $regex: "trà sữa",\n    $options: "i"\n  }\n}
+
+Controller -> Controller: options = {\n  page: 1,\n  limit: 12,\n  sortBy: "createdAt:desc",\n  populate: "categoryId"\n}
+
+Controller -> Service: queryProducts(filter, options)
+activate Service
+
+== Execute Search Query ==
+
+Service -> DB: Product.paginate(filter, options)
+activate DB
+
+DB -> DB: Build regex search query:\ndb.products.find({\n  name: /trà sữa/i\n})
+
+note right of DB
+  MongoDB regex search:
+  - Case-insensitive match
+  - Partial match (contains)
+  - Uses index if available
+  
+  Matches:
+  ✓ "Trà Sữa Trân Châu"
+  ✓ "Trà sữa đường đen"
+  ✓ "TRÀ SỮA MATCHA"
+  ✗ "Cà phê sữa đá"
+end note
+
+DB -> DB: Apply pagination and populate
+
+DB --> Service: Return matching products
+deactivate DB
+
+note right of Service
+  Search results:
+  {
+    results: [
+      {
+        _id, 
+        name: "Trà Sữa Trân Châu Đường Đen",
+        price: 45000,
+        image: "...",
+        categoryId: {name: "Trà Sữa"},
+        ...
+      },
+      {
+        name: "Trà Sữa Matcha",
+        price: 48000,
+        ...
+      },
+      ...
+    ],
+    page: 1,
+    limit: 12,
+    totalPages: 2,
+    totalResults: 15  // found 15 products
+  }
+end note
+
+Service --> Controller: Return search results
+deactivate Service
+
+Controller --> Router: 200 OK\n{search results}
+deactivate Controller
+
+Router --> FE: Success response
+deactivate Router
+
+== Display Search Results ==
+
+FE -> FE: Hide loading indicator
+
+alt No Results Found
+    FE -> FE: Display empty state:\n"No products found for 'trà sữa'"
+    FE -> FE: Show suggestions:\n- Check spelling\n- Try different keywords\n- Browse categories
+    
+    note right of FE
+      Empty State UI:
+      ┌────────────────────────┐
+      │   🔍                   │
+      │   No results found     │
+      │   for "trà sữa"        │
+      │                        │
+      │   Suggestions:         │
+      │   • Try "milk tea"     │
+      │   • Browse categories  │
+      │   • View all products  │
+      └────────────────────────┘
+    end note
+    
+    FE --> User: Show empty state
+    
+else Results Found
+    FE -> FE: Display search results header:\n"Found 15 products for 'trà sữa'"
+    
+    FE -> FE: Highlight search term\nin product names (optional)
+    
+    loop For each product in results
+        FE -> FE: Render product card\nwith matched text highlighted
+    end
+    
+    FE -> FE: Setup pagination\n(if results > limit)
+    
+    note right of FE
+      Search Results:
+      ┌──────────────────────────┐
+      │ Found 15 results         │
+      │                          │
+      │ ┌─────────────┐          │
+      │ │   Image     │          │
+      │ │ Trà Sữa...  │          │
+      │ │ 45,000₫     │          │
+      │ └─────────────┘          │
+      │                          │
+      │ ┌─────────────┐          │
+      │ │   Image     │          │
+      │ │ Trà Sữa...  │          │
+      │ │ 48,000₫     │          │
+      │ └─────────────┘          │
+      │                          │
+      │ [1] [2] →                │
+      └──────────────────────────┘
+    end note
+    
+    FE --> User: Display search results\n"15 products found"
+end
+
+deactivate FE
+
+== User Refines Search ==
+
+User -> FE: Add filter:\nCategory = "Trà Sữa"\nwhile keeping search term
+activate FE
+
+FE -> FE: Combine search + filter:\nname = "trà sữa"\ncategory = "507f..."
+
+FE -> Router: GET /v1/products?\nname=trà sữa&\ncategory=507f...&\npage=1&limit=12
+activate Router
+
+Router -> AuthMW: auth("getProducts")
+activate AuthMW
+AuthMW --> Router: Next()
+deactivate AuthMW
+
+Router -> Controller: getProducts(req, res)
+activate Controller
+
+Controller -> Controller: Build combined filter:\n{\n  name: {$regex: "trà sữa", $options: "i"},\n  categoryId: ObjectId("507f...")\n}
+
+note right of Controller
+  Combined search + filter
+  narrows down results
+end note
+
+Controller -> Service: queryProducts(filter, options)
+activate Service
+Service -> DB: Product.paginate(filter, options)
+activate DB
+
+DB -> DB: Execute combined query:\nFind products matching BOTH\nname pattern AND category
+
+DB --> Service: Return refined results
+deactivate DB
+Service --> Controller: Return products
+deactivate Service
+Controller --> Router: 200 OK\n{refined results}
+deactivate Controller
+Router --> FE: Success response
+deactivate Router
+
+FE -> FE: Update results:\n"Found 12 products in Trà Sữa\nmatching 'trà sữa'"
+
+FE --> User: Display refined results
+deactivate FE
+
+== User Clears Search ==
+
+User -> FE: Click [X] to clear search
+activate FE
+
+FE -> FE: Clear search input\nReset filter to default
+
+FE -> Router: GET /v1/products?\npage=1&limit=12
+activate Router
+
+Router -> AuthMW: auth("getProducts")
+activate AuthMW
+AuthMW --> Router: Next()
+deactivate AuthMW
+
+Router -> Controller: getProducts(req, res)
+activate Controller
+Controller -> Service: queryProducts({}, options)
+activate Service
+Service -> DB: Product.paginate({}, options)
+activate DB
+DB --> Service: Return all products
+deactivate DB
+Service --> Controller: Return products
+deactivate Service
+Controller --> Router: 200 OK\n{all products}
+deactivate Controller
+Router --> FE: Success response
+deactivate Router
+
+FE -> FE: Display all products\nClear search highlight
+FE --> User: "Showing all products"
+deactivate FE
+
+@enduml

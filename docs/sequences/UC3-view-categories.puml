@@ -1,0 +1,99 @@
+@startuml UC3 View Categories
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam sequenceMessageAlign center
+skinparam BoxPadding 10
+
+title UC3 - View Categories
+
+actor "Guest/User" as User
+boundary "Categories Page /\nHome Page" as FE
+participant ":API Gateway\n(Express Router)" as Router
+participant ":authMiddleware" as AuthMW
+participant ":validateMiddleware" as ValidateMW
+participant ":categoryController" as Controller
+participant ":categoryService" as Service
+database "MongoDB\n(ProductCategories)" as DB
+
+== User Opens Categories ==
+
+User -> FE: Navigate to /categories\nor view categories section
+activate FE
+
+FE -> FE: Initialize categories page
+
+FE -> Router: GET /v1/categories?\npage=1&limit=20&sortBy=name:asc
+activate Router
+
+note right of FE
+  Categories can be displayed:
+  - Standalone /categories page
+  - Filter sidebar
+  - Home page section
+  - Navigation menu
+end note
+
+== Authentication (Optional) ==
+
+Router -> AuthMW: auth("getCategories")
+activate AuthMW
+
+AuthMW -> AuthMW: Verify JWT token\n(optional for guests)
+
+note right of AuthMW
+  Categories are typically
+  public, no auth required
+end note
+
+AuthMW --> Router: Next()
+deactivate AuthMW
+
+== Validation ==
+
+Router -> ValidateMW: validate(categoryValidation.getCategories)
+activate ValidateMW
+
+ValidateMW -> ValidateMW: Validate query params:\n- page, limit (integers)\n- sortBy (string)\n- name (string, optional)
+
+ValidateMW --> Router: Next()
+deactivate ValidateMW
+
+== Fetch Categories ==
+
+Router -> Controller: getCategories(req, res)
+activate Controller
+
+Controller -> Controller: Build filter:\nfilter = {}\n(or filter by name if provided)
+
+Controller -> Controller: options = {\n  page: 1,\n  limit: 20,\n  sortBy: "name:asc"\n}
+
+Controller -> Service: queryCategories(filter, options)
+activate Service
+
+Service -> DB: ProductCategory.paginate(filter, options)
+activate DB
+
+DB -> DB: Query all categories:\ndb.productcategories.find({})\n.sort({name: 1})\n.limit(20)
+
+note right of DB
+  Categories are typically
+  small datasets, so we can
+  fetch all or large batch
+end note
+
+DB --> Service: Return categories
+deactivate DB
+
+Service --> Controller: Return categories
+deactivate Service
+
+Controller --> Router: 200 OK\n{categories}
+deactivate Controller
+
+Router --> FE: Success response
+deactivate Router
+
+FE --> User: Successfully loaded categories
+deactivate FE
+
+@enduml

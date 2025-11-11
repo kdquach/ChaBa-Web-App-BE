@@ -1,0 +1,224 @@
+@startuml Product Management - Class Diagram
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+
+skinparam class {
+  BackgroundColor<<Controller>> #B3D9FF
+  BackgroundColor<<Service>> #C8E6C9
+  BackgroundColor<<Model>> #FFF9C4
+  BackgroundColor<<Util>> #E0E0E0
+  BorderColor #666666
+  FontSize 12
+}
+
+title Product Management Module
+
+' ========== CONTROLLER ==========
+class ProductController <<Controller>> {
+  + getProducts(req, res)
+  + getProduct(req, res)
+  + createProduct(req, res)
+  + updateProduct(req, res)
+  + deleteProduct(req, res)
+  + searchProducts(req, res)
+}
+
+class CategoryController <<Controller>> {
+  + getCategories(req, res)
+  + getCategory(req, res)
+  + createCategory(req, res)
+  + updateCategory(req, res)
+  + deleteCategory(req, res)
+}
+
+class ToppingController <<Controller>> {
+  + getToppings(req, res)
+  + getTopping(req, res)
+  + createTopping(req, res)
+  + updateTopping(req, res)
+  + deleteTopping(req, res)
+}
+
+' ========== SERVICE ==========
+class ProductService <<Service>> {
+  + createProduct(productBody)
+  + queryProducts(filter, options)
+  + getProductById(id)
+  + updateProductById(id, updateBody)
+  + deleteProductById(id)
+  + uploadProductImage(file)
+}
+
+class CategoryService <<Service>> {
+  + createCategory(categoryBody)
+  + queryCategories(filter, options)
+  + getCategoryById(id)
+  + updateCategoryById(id, updateBody)
+  + deleteCategoryById(id)
+}
+
+class ToppingService <<Service>> {
+  + createTopping(toppingBody)
+  + queryToppings(filter, options)
+  + getToppingById(id)
+  + updateToppingById(id, updateBody)
+  + deleteToppingById(id)
+}
+
+' ========== MODEL ==========
+class Product <<Model>> {
+  - _id: ObjectId
+  - name: String
+  - description: String
+  - price: Number
+  - image: String
+  - categoryId: ObjectId
+  - status: String
+  - recipe: Recipe[]
+  - toppings: ObjectId[]
+  - customization: Customization
+  - createdAt: Date
+  - updatedAt: Date
+}
+
+class ProductCategory <<Model>> {
+  - _id: ObjectId
+  - name: String
+  - description: String
+}
+
+class Recipe <<Model>> {
+  - ingredientId: ObjectId
+  - quantity: Number
+}
+
+class Customization <<Model>> {
+  - size: String
+  - ice: Number
+  - sugar: Number
+  - description: String
+}
+
+class Topping <<Model>> {
+  - _id: ObjectId
+  - name: String
+  - price: Number
+  - isAvailable: Boolean
+  - image: String
+  - createdAt: Date
+  - updatedAt: Date
+  --
+  + {static} isNameTaken(name, excludeId): Boolean
+}
+
+class Ingredient <<Model>> {
+  - _id: ObjectId
+  - name: String
+  - unit: String
+  - stock: Number
+  - categoryId: ObjectId
+}
+
+' ========== UTILITIES ==========
+class ApiError <<Util>> {
+  - statusCode: Number
+  - message: String
+}
+
+class CatchAsync <<Util>> {
+  + wrap(fn): Function
+}
+
+interface ValidateMiddleware <<Util>> {
+  + validate(schema)
+}
+
+interface UploadMiddleware <<Util>> {
+  + upload(field)
+}
+
+class CloudinaryAdapter <<Util>> {
+  + uploadImage(file)
+  + deleteImage(publicId)
+}
+
+' ========== RELATIONSHIPS ==========
+
+' Controllers -> Services (Dependency)
+ProductController ..> ProductService : <<uses>>
+CategoryController ..> CategoryService : <<uses>>
+ToppingController ..> ToppingService : <<uses>>
+
+' Controllers -> Utils (Dependency)
+ProductController ..> CatchAsync : <<uses>>
+ProductController ..> ValidateMiddleware : <<uses>>
+ProductController ..> UploadMiddleware : <<uses>>
+CategoryController ..> CatchAsync : <<uses>>
+ToppingController ..> CatchAsync : <<uses>>
+
+' Services -> Models (Association)
+ProductService --> Product : manages
+CategoryService --> ProductCategory : manages
+ToppingService --> Topping : manages
+
+' Services -> Utils (Dependency)
+ProductService ..> ApiError : <<throws>>
+ProductService ..> CloudinaryAdapter : <<uses>>
+CategoryService ..> ApiError : <<throws>>
+ToppingService ..> ApiError : <<throws>>
+
+' Model Composition
+Product *-- Recipe : contains
+Product *-- Customization : has
+
+' Model Associations
+Product --> ProductCategory : belongs to
+Product --> Topping : offers
+Recipe --> Ingredient : uses
+
+note right of Product
+  Core entity representing
+  beverage products.
+  Contains recipe (ingredients)
+  and optional toppings.
+end note
+
+note bottom of ProductService
+  Handles product CRUD operations.
+  Integrates with Cloudinary for
+  image storage and management.
+end note
+
+note left of Recipe
+  Embedded document
+  defining ingredients
+  and quantities needed
+  for a product.
+end note
+
+legend right
+  <b>Product Management Module</b>
+  
+  Responsibilities:
+  • Product CRUD operations
+  • Category management
+  • Topping management
+  • Image upload (Cloudinary)
+  • Recipe management
+  • Product customization
+  
+  <b>Features:</b>
+  • Product categories
+  • Ingredient recipes
+  • Customizable options (size, ice, sugar)
+  • Optional toppings
+  • Image storage
+  
+  <b>Relationships:</b>
+  ..> Dependency (uses)
+  --> Association (manages)
+  *-- Composition (owns)
+end legend
+
+@enduml

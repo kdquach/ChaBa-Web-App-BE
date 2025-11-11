@@ -1,0 +1,139 @@
+@startuml Product Management - Activity Diagram
+skinparam activityFontSize 11
+skinparam activityDiamondFontSize 10
+skinparam activityArrowFontSize 10
+skinparam backgroundColor #FFFFFF
+skinparam activity {
+  BackgroundColor #87CEEB
+  BorderColor #4682B4
+  FontColor #000000
+}
+
+title Product Management - Activity Diagram
+
+|Warehouse Staff|
+start
+:Select Manage Product;
+
+|System|
+:Retrieve the list of products;
+:Display Manage Product interface
+with the list of products;
+
+|Warehouse Staff|
+:View Product List;
+
+:Select action;
+
+if (Click add button?) then (yes)
+  |Warehouse Staff|
+  :Select Add Product;
+  
+  |System|
+  :Display Add Product Form;
+  
+  |Warehouse Staff|
+  :Fill product details
+  (name, price, category,
+  image, recipe);
+  
+  :Submit form;
+  
+  |System|
+  :Validate product data;
+  
+  if (Valid data?) then (yes)
+    :Upload image to Cloudinary;
+    :Create new product in database;
+    :Return success message;
+    
+    |Warehouse Staff|
+    :View success notification;
+  else (no)
+    |System|
+    :Return error message;
+    
+    |Warehouse Staff|
+    :View error notification;
+  endif
+  
+elseif (Click edit button?) then (yes)
+  |Warehouse Staff|
+  :Select Edit Product;
+  
+  |System|
+  :Retrieve product details;
+  :Display Edit Product Form
+  with existing data;
+  
+  |Warehouse Staff|
+  :Modify product details;
+  :Submit form;
+  
+  |System|
+  :Validate product data;
+  
+  if (Valid data?) then (yes)
+    if (New image uploaded?) then (yes)
+      :Delete old image from Cloudinary;
+      :Upload new image to Cloudinary;
+    endif
+    :Update product in database;
+    :Return success message;
+    
+    |Warehouse Staff|
+    :View success notification;
+  else (no)
+    |System|
+    :Return error message;
+    
+    |Warehouse Staff|
+    :View error notification;
+  endif
+  
+elseif (Click delete button?) then (yes)
+  |Warehouse Staff|
+  :Select Delete Product;
+  
+  |System|
+  :Display confirmation dialog;
+  
+  |Warehouse Staff|
+  :Confirm deletion;
+  
+  |System|
+  :Check if product is in use
+  (orders, carts, recipes);
+  
+  if (Product in use?) then (yes)
+    :Return error message
+    (cannot delete);
+    
+    |Warehouse Staff|
+    :View error notification;
+  else (no)
+    :Delete image from Cloudinary;
+    :Delete product from database;
+    :Return success message;
+    
+    |Warehouse Staff|
+    :View success notification;
+  endif
+  
+elseif (Click search button?) then (yes)
+  |Warehouse Staff|
+  :Select Search Product;
+  :Enter search criteria
+  (name, category, status);
+  
+  |System|
+  :Query products by criteria;
+  :Display filtered results;
+  
+  |Warehouse Staff|
+  :View search results;
+endif
+
+stop
+
+@enduml

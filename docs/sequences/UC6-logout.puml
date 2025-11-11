@@ -1,0 +1,130 @@
+@startuml UC6 Logout
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam sequenceMessageAlign center
+skinparam BoxPadding 10
+
+title UC6 - Logout
+
+actor "Authenticated User" as User
+boundary "App Navigation /\nProfile Menu" as FE
+participant ":API Gateway\n(Express Router)" as Router
+participant ":validateMiddleware" as ValidateMW
+participant ":authController" as AuthCtrl
+participant ":authService" as AuthSvc
+database "MongoDB\n(Tokens Collection)" as TokenDB
+
+== User Initiates Logout ==
+
+User -> FE: Click "Logout" button\nin profile menu
+activate FE
+
+
+FE -> FE: Show confirmation (optional):\n"Are you sure you want\nto logout?"
+
+User -> FE: Confirm logout
+
+FE -> FE: Retrieve refresh token\nfrom secure storage
+
+
+alt No Refresh Token Found
+    FE -> FE: Clear local state only
+    FE --> User: Redirect to login\n(silent logout)
+end
+
+FE -> Router: POST /v1/auth/logout\nBody: {refreshToken: "..."}
+activate Router
+
+== Validation ==
+
+Router -> ValidateMW: validate(authValidation.logout)
+activate ValidateMW
+
+ValidateMW -> ValidateMW: Validate body:\n- refreshToken (required, string)
+
+alt Validation Failed
+    ValidateMW --> Router: 400 Bad Request\n{error: "Refresh token required"}
+    Router --> FE: Validation error
+    
+    note right of FE
+      Even if validation fails,
+      client should still clear
+      local tokens
+    end note
+    
+    FE -> FE: Clear local tokens anyway
+    FE --> User: Redirect to login
+else Valid
+    ValidateMW --> Router: Next()
+    deactivate ValidateMW
+end
+
+== Invalidate Refresh Token ==
+
+Router -> AuthCtrl: logout(req, res)
+activate AuthCtrl
+
+AuthCtrl -> AuthSvc: logout(req.body.refreshToken)
+activate AuthSvc
+
+AuthSvc -> TokenDB: Token.findOne({\n  token: refreshToken,\n  type: "REFRESH",\n  blacklisted: false\n})
+activate TokenDB
+
+note right of TokenDB
+  Find refresh token that:
+  1. Matches the provided token
+  2. Is of type REFRESH
+  3. Is not already blacklisted
+end note
+
+TokenDB --> AuthSvc: Return token document or null
+deactivate TokenDB
+
+alt Token Not Found
+    AuthSvc --> AuthCtrl: throw ApiError(404,\n"Token not found")
+    AuthCtrl --> Router: 404 Not Found
+    Router --> FE: Error response
+    
+    note right of FE
+      Token might be:
+      - Already deleted
+      - Invalid
+      - Expired
+      
+      Still proceed with client logout
+    end note
+    
+    FE -> FE: Clear local tokens
+    FE --> User: Redirect to login
+    
+else Token Found
+    AuthSvc -> TokenDB: refreshTokenDoc.remove()
+    activate TokenDB
+    
+    note right of TokenDB
+      Delete token from database
+      This invalidates the refresh token
+      
+      Alternative approach:
+      - Set blacklisted = true
+      - Keep for audit trail
+    end note
+    
+    TokenDB --> AuthSvc: Token deleted
+    deactivate TokenDB
+    
+    AuthSvc --> AuthCtrl: Logout successful
+    deactivate AuthSvc
+    
+    AuthCtrl --> Router: 200 OK\n(no body)
+    deactivate AuthCtrl
+    
+    Router --> FE: Success response
+    deactivate Router
+
+    FE --> User: "You've been logged out"
+    deactivate FE
+end
+
+
+@enduml

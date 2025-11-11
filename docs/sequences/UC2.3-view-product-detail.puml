@@ -1,0 +1,118 @@
+@startuml UC2.3 View Food Product Detail
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam sequenceMessageAlign center
+skinparam BoxPadding 10
+
+title UC2.3 - View Food Product Detail
+
+actor "Guest/User" as User
+boundary "Product Detail\nPage" as FE
+participant ":API Gateway\n(Express Router)" as Router
+participant ":authMiddleware" as AuthMW
+participant ":validateMiddleware" as ValidateMW
+participant ":productController" as Controller
+participant ":productService" as Service
+database "MongoDB\n(Product Collection)" as DB
+
+== User Navigates to Product ==
+
+User -> FE: Click product card\nfrom catalog
+activate FE
+
+FE -> FE: Extract productId\nfrom clicked product
+
+FE -> FE: Navigate to\n/products/:productId
+
+note right of FE
+  Route example:
+  /products/507f1f77bcf86cd799439011
+end note
+
+FE -> Router: GET /v1/products/:productId\nHeaders: {Authorization: Bearer <token>}
+activate Router
+
+== Authentication (Optional) ==
+
+Router -> AuthMW: auth("getProducts")
+activate AuthMW
+
+AuthMW -> AuthMW: Verify JWT token\n(optional for guest users)
+
+alt Valid Token or Guest
+    AuthMW --> Router: Next()
+else Invalid Token
+    AuthMW --> Router: 401 Unauthorized
+    Router --> FE: Error response
+    FE --> User: Redirect to login
+end
+
+deactivate AuthMW
+
+== Validation ==
+
+Router -> ValidateMW: validate(productValidation.getProduct)
+activate ValidateMW
+
+ValidateMW -> ValidateMW: Validate params.productId\n(must be valid ObjectId)
+
+alt Invalid Product ID
+    ValidateMW --> Router: 400 Bad Request\n{error: "Invalid product ID"}
+    Router --> FE: Validation error
+    FE --> User: Show error page\n"Invalid product"
+else Valid ObjectId
+    ValidateMW --> Router: Next()
+    deactivate ValidateMW
+end
+
+== Fetch Product Details ==
+
+Router -> Controller: getProduct(req, res)
+activate Controller
+
+Controller -> Service: getProductById(req.params.productId)
+activate Service
+
+Service -> DB: Product.findById(productId)\n.populate("categoryId")\n.populate("toppings")\n.populate("recipe.ingredientId")
+activate DB
+
+note right of DB
+  Populate references:
+  1. categoryId → ProductCategory
+  2. toppings[] → Topping documents
+  3. recipe[].ingredientId → Ingredient documents
+end note
+
+alt Product Not Found
+    DB --> Service: Return null
+    deactivate DB
+    
+    Service --> Controller: Return null
+    deactivate Service
+    
+    Controller -> Controller: Check if product exists
+    
+    Controller --> Router: throw ApiError(404,\n"Product not found")
+    Router --> FE: 404 Not Found
+    FE --> User: Show 404 page\n"Product not found"
+    
+else Product Found
+    DB --> Service: Return populated product
+    deactivate DB
+    
+    Service --> Controller: Return product
+    deactivate Service
+    
+    Controller --> Router: 200 OK {product}
+    deactivate Controller
+    
+    Router --> FE: Success response
+    deactivate Router
+
+    FE --> User: Display complete\nproduct detail page
+deactivate FE
+end
+
+
+
+@enduml

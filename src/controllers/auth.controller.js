@@ -127,6 +127,24 @@ const resetPasswordWithOTP = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * Verify access token and return user info
+ */
+const verifyToken = catchAsync(async (req, res) => {
+  // req.user is already populated by auth() middleware
+  const { user } = req;
+  res.status(httpStatus.OK).send({
+    valid: true,
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      isEmailVerified: user.isEmailVerified,
+    },
+  });
+});
+
 module.exports = {
   register,
   login,
@@ -144,4 +162,5 @@ module.exports = {
   forgotPasswordStep2,
   resetPasswordWithOTP,
   facebookLogin,
+  verifyToken,
 };

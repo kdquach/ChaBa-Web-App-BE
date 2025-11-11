@@ -1,0 +1,254 @@
+@startuml Order & Cart Management - Class Diagram
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+
+skinparam class {
+  BackgroundColor<<Controller>> #B3D9FF
+  BackgroundColor<<Service>> #C8E6C9
+  BackgroundColor<<Model>> #FFF9C4
+  BackgroundColor<<Util>> #E0E0E0
+  BorderColor #666666
+  FontSize 12
+}
+
+title Order & Cart Management Module
+
+' ========== CONTROLLER ==========
+class CartController <<Controller>> {
+  + getCart(req, res)
+  + addToCart(req, res)
+  + updateCartItem(req, res)
+  + removeFromCart(req, res)
+  + clearCart(req, res)
+}
+
+class OrderController <<Controller>> {
+  + createOrder(req, res)
+  + getOrders(req, res)
+  + getOrder(req, res)
+  + getUserOrders(req, res)
+  + updateOrderStatus(req, res)
+  + cancelOrder(req, res)
+}
+
+' ========== SERVICE ==========
+class CartService <<Service>> {
+  + getCartByUserId(userId)
+  + addItemToCart(userId, item)
+  + updateCartItem(userId, itemId, quantity)
+  + removeItemFromCart(userId, itemId)
+  + clearCart(userId)
+  + calculateTotal(cart)
+  + validateCartItems(cartItems)
+}
+
+class OrderService <<Service>> {
+  + createOrder(userId, orderData)
+  + getOrdersByUserId(userId)
+  + getOrderById(orderId)
+  + updateOrderStatus(orderId, status)
+  + cancelOrder(orderId)
+  + calculateOrderTotal(orderItems)
+  + snapshotProductData(productId)
+}
+
+' ========== MODEL ==========
+class Cart <<Model>> {
+  - _id: ObjectId
+  - userId: ObjectId
+  - items: CartItem[]
+  - totalPrice: Number
+  - status: String
+  - createdAt: Date
+  - updatedAt: Date
+  --
+  + calculateTotal(): Number
+  + addItem(item): void
+  + removeItem(itemId): void
+  + updateItemQuantity(itemId, quantity): void
+  + clear(): void
+}
+
+class CartItem <<Model>> {
+  - _id: ObjectId
+  - productId: ObjectId
+  - quantity: Number
+  - customization: Customization
+  - note: String
+  --
+  + getPrice(): Number
+}
+
+class Customization <<Model>> {
+  - size: String
+  - ice: Number
+  - sugar: Number
+  - description: String
+}
+
+class Order <<Model>> {
+  - _id: ObjectId
+  - userId: ObjectId
+  - products: OrderItem[]
+  - totalAmount: Number
+  - payment: Payment
+  - status: String
+  - createdAt: Date
+  - updatedAt: Date
+  --
+  + calculateTotal(): Number
+  + updateStatus(status): void
+  + canCancel(): Boolean
+}
+
+class OrderItem <<Model>> {
+  - productId: ObjectId
+  - name: String
+  - price: Number
+  - quantity: Number
+  - toppings: OrderTopping[]
+  --
+  + getSubtotal(): Number
+}
+
+class OrderTopping <<Model>> {
+  - toppingId: ObjectId
+  - name: String
+  - price: Number
+}
+
+class Payment <<Model>> {
+  - method: String
+  - status: String
+  - transactionId: String
+  - paidAt: Date
+}
+
+class User <<Model>> {
+  - _id: ObjectId
+  - name: String
+  - email: String
+}
+
+class Product <<Model>> {
+  - _id: ObjectId
+  - name: String
+  - price: Number
+}
+
+class Topping <<Model>> {
+  - _id: ObjectId
+  - name: String
+  - price: Number
+}
+
+' ========== UTILITIES ==========
+class ApiError <<Util>> {
+  - statusCode: Number
+  - message: String
+}
+
+class CatchAsync <<Util>> {
+  + wrap(fn): Function
+}
+
+interface AuthMiddleware <<Util>> {
+  + auth(...requiredRights)
+}
+
+' ========== RELATIONSHIPS ==========
+
+' Controllers -> Services (Dependency)
+CartController ..> CartService : <<uses>>
+OrderController ..> OrderService : <<uses>>
+
+' Controllers -> Utils (Dependency)
+CartController ..> CatchAsync : <<uses>>
+CartController ..> AuthMiddleware : <<uses>>
+OrderController ..> CatchAsync : <<uses>>
+OrderController ..> AuthMiddleware : <<uses>>
+
+' Services -> Models (Association)
+CartService --> Cart : manages
+OrderService --> Order : manages
+
+' Services -> Utils (Dependency)
+CartService ..> ApiError : <<throws>>
+OrderService ..> ApiError : <<throws>>
+
+' Model Composition (owns)
+Cart *-- CartItem : contains
+Order *-- OrderItem : contains
+Order *-- Payment : has
+OrderItem *-- OrderTopping : contains
+
+' Model Associations (references)
+Cart --> User : belongs to
+CartItem --> Product : contains
+CartItem *-- Customization : has
+Order --> User : placed by
+OrderItem ..> Product : snapshot of
+OrderTopping ..> Topping : snapshot of
+
+note right of Cart
+  Shopping cart for users.
+  Temporarily stores items
+  before checkout.
+  Status: active | checked_out
+end note
+
+note right of Order
+  Immutable order record.
+  Snapshots product data at
+  purchase time to preserve
+  historical pricing.
+end note
+
+note bottom of OrderService
+  Business logic:
+  • Create order from cart
+  • Snapshot product prices
+  • Calculate totals
+  • Status management
+  • Order cancellation rules
+end note
+
+note left of OrderItem
+  Snapshot of product at
+  purchase time. Preserves:
+  • Product name
+  • Price at purchase
+  • Selected toppings
+end note
+
+legend right
+  <b>Order & Cart Management Module</b>
+  
+  Responsibilities:
+  • Shopping cart operations
+  • Order creation & management
+  • Order status tracking
+  • Payment processing
+  • Price calculation
+  
+  <b>Cart Features:</b>
+  • Add/Update/Remove items
+  • Product customization
+  • Real-time total calculation
+  • Cart persistence per user
+  
+  <b>Order Features:</b>
+  • Immutable order records
+  • Product data snapshot
+  • Status workflow (pending → completed)
+  • Order history tracking
+  • Cancellation logic
+  
+  <b>Relationships:</b>
+  ..> Dependency (uses)
+  --> Association (manages)
+  *-- Composition (owns)
+end legend
+
+@enduml

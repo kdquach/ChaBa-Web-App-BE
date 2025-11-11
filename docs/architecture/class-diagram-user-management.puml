@@ -1,0 +1,226 @@
+@startuml User Management - Class Diagram
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+
+skinparam class {
+  BackgroundColor<<Controller>> #B3D9FF
+  BackgroundColor<<Service>> #C8E6C9
+  BackgroundColor<<Model>> #FFF9C4
+  BackgroundColor<<Util>> #E0E0E0
+  BorderColor #666666
+  FontSize 12
+}
+
+title User Management Module
+
+' ========== CONTROLLER ==========
+class UserController <<Controller>> {
+  + getUsers(req, res)
+  + getUser(req, res)
+  + createUser(req, res)
+  + updateUser(req, res)
+  + deleteUser(req, res)
+}
+
+class AuthController <<Controller>> {
+  + register(req, res)
+  + login(req, res)
+  + logout(req, res)
+  + googleLogin(req, res)
+  + facebookLogin(req, res)
+  + forgotPassword(req, res)
+  + resetPassword(req, res)
+  + sendOTP(req, res)
+  + verifyOTP(req, res)
+}
+
+' ========== SERVICE ==========
+class UserService <<Service>> {
+  + createUser(userBody)
+  + queryUsers(filter, options)
+  + getUserById(id)
+  + getUserByEmail(email)
+  + updateUserById(userId, updateBody)
+  + deleteUserById(userId)
+}
+
+class AuthService <<Service>> {
+  + loginUserWithEmailAndPassword(email, password)
+  + logout(refreshToken)
+  + refreshAuth(refreshToken)
+  + resetPassword(token, password)
+  + verifyEmail(token)
+  + googleLogin(idToken)
+  + facebookLogin(accessToken)
+}
+
+class TokenService <<Service>> {
+  + generateToken(userId, expires, type)
+  + saveToken(token, userId, expires, type)
+  + verifyToken(token, type)
+  + generateAuthTokens(user)
+  + generateResetPasswordToken(email)
+  + generateVerifyEmailToken(user)
+}
+
+class OTPService <<Service>> {
+  + generateOTP()
+  + sendOTP(email, type)
+  + verifyOTP(email, otp, type)
+  + deleteOTP(email, type)
+}
+
+class EmailService <<Service>> {
+  + sendEmail(to, subject, content)
+  + sendResetPasswordEmail(email, token)
+  + sendVerificationEmail(email, token)
+  + sendOTPEmail(email, otp)
+}
+
+' ========== MODEL ==========
+class User <<Model>> {
+  - _id: ObjectId
+  - name: String
+  - email: String
+  - password: String
+  - phone: String
+  - provider: String
+  - providerId: String
+  - addresses: Address[]
+  - role: String
+  - isEmailVerified: Boolean
+  - createdAt: Date
+  - updatedAt: Date
+  --
+  + isPasswordMatch(password): Boolean
+  + {static} isEmailTaken(email, excludeUserId): Boolean
+}
+
+class Address <<Model>> {
+  - street: String
+  - ward: Object
+  - district: Object
+  - city: Object
+}
+
+class Token <<Model>> {
+  - _id: ObjectId
+  - token: String
+  - user: ObjectId
+  - type: String
+  - expires: Date
+  - blacklisted: Boolean
+  - createdAt: Date
+  - updatedAt: Date
+}
+
+class OTP <<Model>> {
+  - _id: ObjectId
+  - email: String
+  - otp: String
+  - type: String
+  - expiresAt: Date
+  - verified: Boolean
+  - attempts: Number
+  - createdAt: Date
+  - updatedAt: Date
+}
+
+' ========== UTILITIES ==========
+class ApiError <<Util>> {
+  - statusCode: Number
+  - message: String
+  - isOperational: Boolean
+}
+
+class CatchAsync <<Util>> {
+  + wrap(fn): Function
+}
+
+interface AuthMiddleware <<Util>> {
+  + auth(...requiredRights)
+}
+
+interface ValidateMiddleware <<Util>> {
+  + validate(schema)
+}
+
+class GoogleVerify <<Util>> {
+  + verifyGoogleToken(idToken)
+}
+
+class FacebookVerify <<Util>> {
+  + verifyFacebookToken(accessToken)
+}
+
+' ========== RELATIONSHIPS ==========
+
+' Controllers -> Services (Dependency)
+UserController ..> UserService : <<uses>>
+AuthController ..> AuthService : <<uses>>
+AuthController ..> TokenService : <<uses>>
+AuthController ..> OTPService : <<uses>>
+AuthController ..> EmailService : <<uses>>
+
+' Controllers -> Utils (Dependency)
+UserController ..> CatchAsync : <<uses>>
+AuthController ..> CatchAsync : <<uses>>
+UserController ..> AuthMiddleware : <<uses>>
+UserController ..> ValidateMiddleware : <<uses>>
+AuthController ..> ValidateMiddleware : <<uses>>
+
+' Services -> Models (Association)
+UserService --> User : manages
+AuthService --> User : authenticates
+TokenService --> Token : manages
+OTPService --> OTP : manages
+
+' Services -> Utils (Dependency)
+UserService ..> ApiError : <<throws>>
+AuthService ..> ApiError : <<throws>>
+AuthService ..> GoogleVerify : <<uses>>
+AuthService ..> FacebookVerify : <<uses>>
+TokenService ..> ApiError : <<throws>>
+EmailService ..> ApiError : <<throws>>
+
+' Model Composition
+User *-- Address : contains
+
+' Model Associations
+Token --> User : belongs to
+OTP ..> User : for
+
+note right of User
+  Central entity for authentication
+  and user management.
+  Supports local, Google, and 
+  Facebook authentication.
+end note
+
+note bottom of AuthService
+  Handles all authentication flows:
+  - Local login/register
+  - Social login (Google/Facebook)
+  - Password reset
+  - OTP verification
+end note
+
+legend right
+  <b>User Management Module</b>
+  
+  Responsibilities:
+  • User CRUD operations
+  • Authentication & Authorization
+  • Social login integration
+  • Password management
+  • Email verification
+  • OTP-based operations
+  
+  <b>Relationships:</b>
+  ..> Dependency (uses)
+  --> Association (manages)
+  *-- Composition (owns)
+end legend
+
+@enduml

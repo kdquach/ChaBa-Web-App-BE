@@ -83,8 +83,9 @@ router.post(
 );
 router.get(
   "/verify",
-  validate(authValidation.verifyEmail),
-  authController.verifyEmail
+  auth(),
+  validate(authValidation.verifyToken),
+  authController.verifyToken
 );
 
 router.patch(

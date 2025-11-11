@@ -1,0 +1,102 @@
+@startuml
+' Package diagram styled like the provided example
+skinparam packageStyle rect
+skinparam rectangle {
+  Shadowing false
+}
+skinparam defaultFontName Arial
+skinparam componentStyle uml2
+
+title TheTrois Backend - Package View (dependencies)
+
+package "entry & config" as entryConfig {
+  package "config" as config {
+  }
+  package "app" as app {
+  }
+}
+
+package "api layer" as apiLayer {
+  package "routes" as routes {
+  }
+  package "controllers" as controllers {
+  }
+}
+
+package "services" as services {
+}
+
+package "data layer" as dataLayer {
+  package "models" as models {
+  }
+}
+
+package "cross-cutting" as crosscut {
+  package "middlewares" as middlewares {
+  }
+  package "validations" as validations {
+  }
+  package "utils" as utils {
+  }
+}
+
+package "user interfaces" as ui {
+}
+
+package "external services" as external {
+  package "datastore" as datastore {
+  }
+  package "third-party" as thirdparty {
+  }
+}
+
+' --- Dependency arrows based on actual source code ---
+
+' Entry point dependencies
+entryConfig --> external
+entryConfig --> apiLayer
+entryConfig --> middlewares
+
+' UI to API
+ui --> apiLayer
+
+' App.js uses config, middlewares, routes, error handlers
+entryConfig --> utils
+
+' Routes layer
+routes --> validations
+routes --> middlewares
+routes --> controllers
+
+' Controllers dependencies
+controllers --> services
+controllers --> utils
+
+' Services dependencies (the core business logic layer)
+services --> dataLayer
+services --> utils
+services --> external
+
+' Middlewares dependencies
+middlewares --> utils
+middlewares --> dataLayer
+middlewares --> entryConfig
+
+' Models to database
+dataLayer --> external
+
+' Validations are standalone (Joi schemas)
+' Utils may use external services
+utils --> external
+
+note right of ui
+  UI (Web / Mobile) call the API
+  Routes -> Controllers -> Services
+end note
+
+note left of dataLayer
+  Mongoose models + plugins
+  represent the database schema
+end note
+
+@enduml

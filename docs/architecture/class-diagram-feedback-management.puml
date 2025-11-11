@@ -1,0 +1,191 @@
+@startuml Feedback Management - Class Diagram
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+
+skinparam class {
+  BackgroundColor<<Controller>> #B3D9FF
+  BackgroundColor<<Service>> #C8E6C9
+  BackgroundColor<<Model>> #FFF9C4
+  BackgroundColor<<Util>> #E0E0E0
+  BorderColor #666666
+  FontSize 12
+}
+
+title Feedback & Review Management Module
+
+' ========== CONTROLLER ==========
+class FeedbackController <<Controller>> {
+  + createFeedback(req, res)
+  + getFeedbacks(req, res)
+  + getFeedback(req, res)
+  + getProductFeedbacks(req, res)
+  + getUserFeedbacks(req, res)
+  + updateFeedback(req, res)
+  + deleteFeedback(req, res)
+  + approveFeedback(req, res)
+  + rejectFeedback(req, res)
+  + reportFeedback(req, res)
+}
+
+' ========== SERVICE ==========
+class FeedbackService <<Service>> {
+  + createFeedback(feedbackBody)
+  + getFeedbacksByProduct(productId, filter, options)
+  + getFeedbacksByUser(userId, filter, options)
+  + getFeedbackById(id)
+  + updateFeedback(id, updateBody)
+  + deleteFeedback(id)
+  + approveFeedback(id)
+  + rejectFeedback(id, reason)
+  + reportFeedback(id, reason)
+  + calculateAverageRating(productId)
+  + verifyPurchase(userId, productId)
+}
+
+' ========== MODEL ==========
+class Feedback <<Model>> {
+  - _id: ObjectId
+  - userId: ObjectId
+  - productId: ObjectId
+  - rating: Number
+  - content: String
+  - status: String
+  - isVerifiedPurchase: Boolean
+  - images: String[]
+  - likes: Number
+  - reportCount: Number
+  - createdAt: Date
+  - updatedAt: Date
+  --
+  + approve(): void
+  + reject(reason): void
+  + report(reason): void
+  + like(): void
+  + isEditable(): Boolean
+}
+
+class User <<Model>> {
+  - _id: ObjectId
+  - name: String
+  - email: String
+  - avatar: String
+}
+
+class Product <<Model>> {
+  - _id: ObjectId
+  - name: String
+  - image: String
+  - averageRating: Number
+  - totalReviews: Number
+}
+
+class Order <<Model>> {
+  - _id: ObjectId
+  - userId: ObjectId
+  - products: OrderItem[]
+  - status: String
+}
+
+' ========== UTILITIES ==========
+class ApiError <<Util>> {
+  - statusCode: Number
+  - message: String
+}
+
+class CatchAsync <<Util>> {
+  + wrap(fn): Function
+}
+
+interface AuthMiddleware <<Util>> {
+  + auth(...requiredRights)
+}
+
+interface ValidateMiddleware <<Util>> {
+  + validate(schema)
+}
+
+' ========== RELATIONSHIPS ==========
+
+' Controller -> Service (Dependency)
+FeedbackController ..> FeedbackService : <<uses>>
+
+' Controller -> Utils (Dependency)
+FeedbackController ..> CatchAsync : <<uses>>
+FeedbackController ..> AuthMiddleware : <<uses>>
+FeedbackController ..> ValidateMiddleware : <<uses>>
+
+' Service -> Model (Association)
+FeedbackService --> Feedback : manages
+FeedbackService ..> Order : verifies purchase
+
+' Service -> Utils (Dependency)
+FeedbackService ..> ApiError : <<throws>>
+
+' Model Associations (references)
+Feedback --> User : written by
+Feedback --> Product : about
+
+note right of Feedback
+  User reviews and ratings.
+  Status: pending | approved 
+          | rejected | reported
+  
+  Verified purchase badge
+  displayed if user bought
+  the product.
+end note
+
+note bottom of FeedbackService
+  Business logic:
+  • Moderation workflow
+  • Purchase verification
+  • Rating calculation
+  • Spam/abuse prevention
+  • Image upload support
+end note
+
+note left of Product
+  Product aggregate data
+  updated when feedback
+  is approved:
+  • averageRating
+  • totalReviews
+end note
+
+legend right
+  <b>Feedback Management Module</b>
+  
+  Responsibilities:
+  • Feedback CRUD operations
+  • Review moderation
+  • Rating system (1-5 stars)
+  • Purchase verification
+  • Abuse reporting
+  • Average rating calculation
+  
+  <b>Features:</b>
+  • User reviews & ratings
+  • Verified purchase badge
+  • Moderation workflow
+  • Image attachments
+  • Like system
+  • Report abuse
+  • Admin approval/rejection
+  
+  <b>Status Workflow:</b>
+  pending → approved/rejected
+  approved → reported (if flagged)
+  
+  <b>Business Rules:</b>
+  • Rating: 1-5 stars
+  • Must authenticate to review
+  • Can verify if purchased
+  • Admin can moderate
+  
+  <b>Relationships:</b>
+  ..> Dependency (uses)
+  --> Association (manages)
+end legend
+
+@enduml

@@ -1,0 +1,192 @@
+@startuml Ingredient Management - Activity Diagram
+skinparam activityFontSize 11
+skinparam activityDiamondFontSize 10
+skinparam activityArrowFontSize 10
+skinparam backgroundColor #FFFFFF
+skinparam activity {
+  BackgroundColor #87CEEB
+  BorderColor #4682B4
+  FontColor #000000
+}
+
+title Ingredient Management - Activity Diagram
+
+|Warehouse Staff|
+start
+:Select Manage Ingredient;
+
+|System|
+:Retrieve the list of ingredients;
+:Display Manage Ingredient interface
+with the list of ingredients;
+
+|Warehouse Staff|
+:View Ingredient List;
+
+:Select action;
+
+if (Click add button?) then (yes)
+  |Warehouse Staff|
+  :Select Add Ingredient;
+  
+  |System|
+  :Display Add Ingredient Form;
+  
+  |Warehouse Staff|
+  :Fill ingredient details
+  (name, unit, stock,
+  min/max stock, price,
+  supplier, category);
+  
+  :Submit form;
+  
+  |System|
+  :Validate ingredient data;
+  
+  if (Valid data?) then (yes)
+    :Create new ingredient in database;
+    :Return success message;
+    
+    |Warehouse Staff|
+    :View success notification;
+  else (no)
+    |System|
+    :Return error message;
+    
+    |Warehouse Staff|
+    :View error notification;
+  endif
+  
+elseif (Click edit button?) then (yes)
+  |Warehouse Staff|
+  :Select Edit Ingredient;
+  
+  |System|
+  :Retrieve ingredient details;
+  :Display Edit Ingredient Form
+  with existing data;
+  
+  |Warehouse Staff|
+  :Modify ingredient details;
+  :Submit form;
+  
+  |System|
+  :Validate ingredient data;
+  
+  if (Valid data?) then (yes)
+    :Update ingredient in database;
+    
+    if (Stock < MinStock?) then (yes)
+      :Trigger low stock alert;
+      :Send notification to admin;
+    endif
+    
+    :Return success message;
+    
+    |Warehouse Staff|
+    :View success notification;
+  else (no)
+    |System|
+    :Return error message;
+    
+    |Warehouse Staff|
+    :View error notification;
+  endif
+  
+elseif (Click delete button?) then (yes)
+  |Warehouse Staff|
+  :Select Delete Ingredient;
+  
+  |System|
+  :Display confirmation dialog;
+  
+  |Warehouse Staff|
+  :Confirm deletion;
+  
+  |System|
+  :Check if ingredient is used
+  in any product recipe;
+  
+  if (Ingredient in use?) then (yes)
+    :Return error message
+    (cannot delete);
+    
+    |Warehouse Staff|
+    :View error notification;
+  else (no)
+    :Delete ingredient from database;
+    :Return success message;
+    
+    |Warehouse Staff|
+    :View success notification;
+  endif
+  
+elseif (Click check stock button?) then (yes)
+  |Warehouse Staff|
+  :Select Check Stock;
+  
+  |System|
+  :Query current stock levels;
+  :Identify low stock items
+  (stock < minStock);
+  :Identify expiring items
+  (expiryDate < 7 days);
+  :Display stock report
+  with alerts;
+  
+  |Warehouse Staff|
+  :View stock report;
+  :View low stock alerts;
+  :View expiring items;
+  
+elseif (Click update stock button?) then (yes)
+  |Warehouse Staff|
+  :Select Update Stock;
+  :Select ingredient;
+  :Choose operation
+  (Add/Reduce stock);
+  :Enter quantity;
+  
+  |System|
+  :Validate quantity;
+  
+  if (Valid quantity?) then (yes)
+    :Update stock level;
+    
+    if (Operation = Add?) then (yes)
+      :stock = stock + quantity;
+    else (Reduce)
+      if (quantity > stock?) then (yes)
+        :Return error
+        (insufficient stock);
+        
+        |Warehouse Staff|
+        :View error notification;
+        stop
+      else (no)
+        :stock = stock - quantity;
+      endif
+    endif
+    
+    if (stock < minStock?) then (yes)
+      :Trigger low stock alert;
+    endif
+    
+    :Save to database;
+    :Return success message;
+    
+    |Warehouse Staff|
+    :View success notification;
+  else (no)
+    |System|
+    :Return error message;
+    
+    |Warehouse Staff|
+    :View error notification;
+  endif
+  
+endif
+
+stop
+
+@enduml

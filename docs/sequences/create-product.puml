@@ -1,0 +1,164 @@
+@startuml Create Product Sequence
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam sequenceMessageAlign center
+skinparam BoxPadding 10
+
+title Create Product Flow - TheTrois System
+
+actor "Admin User" as Admin
+boundary "Product Management\nPage" as FE
+participant ":API Gateway\n(Express Router)" as Router
+participant ":authMiddleware" as AuthMW
+participant ":uploadMiddleware" as UploadMW
+participant ":validateMiddleware" as ValidateMW
+participant ":productController" as Controller
+participant ":productService" as Service
+participant ":Cloudinary API" as Cloudinary
+database "MongoDB\n(Product Collection)" as DB
+
+== Authentication & File Upload ==
+
+Admin -> FE: Fill product form\n(name, price, category, image, recipe, toppings)
+activate FE
+
+FE -> FE: Create FormData with\nfile + JSON fields
+note right of FE
+  FormData includes:
+  - name, price, categoryId
+  - description, status
+  - image (File object)
+  - recipe (JSON array)
+  - toppings (JSON array)
+end note
+
+FE -> Router: POST /v1/products\nHeaders: {Authorization: Bearer <token>}\nBody: FormData
+activate Router
+
+Router -> AuthMW: auth("manageProducts")
+activate AuthMW
+
+AuthMW -> AuthMW: Verify JWT token
+AuthMW -> AuthMW: Check user permissions\nfor "manageProducts"
+
+alt Invalid Token or No Permission
+    AuthMW --> Router: 401 Unauthorized /\n403 Forbidden
+    Router --> FE: Error response
+    FE --> Admin: Show error message
+else Valid Token & Permission
+    AuthMW -> AuthMW: Attach user to req.user
+    AuthMW --> Router: Next()
+    deactivate AuthMW
+end
+
+== Image Upload to Cloudinary ==
+
+Router -> UploadMW: upload.single("image")
+activate UploadMW
+
+UploadMW -> UploadMW: Extract image from\nreq.files or req.body
+
+alt No Image Provided
+    UploadMW --> Router: Continue without upload
+else Image Provided
+    UploadMW -> Cloudinary: Upload image
+    activate Cloudinary
+    note right of Cloudinary
+      Upload to folder:
+      product_images/
+      Transform: 800x800
+    end note
+    
+    Cloudinary --> UploadMW: Return image URL
+    deactivate Cloudinary
+    
+    UploadMW -> UploadMW: Attach file info\nto req.file\n{path: cloudinary_url}
+end
+
+UploadMW --> Router: Next()
+deactivate UploadMW
+
+== Validation ==
+
+Router -> ValidateMW: validate(productValidation.createProduct)
+activate ValidateMW
+
+ValidateMW -> ValidateMW: Validate request body\nusing Joi schema
+note right of ValidateMW
+  Check required fields:
+  - name (string, required)
+  - price (number ≥ 0, required)
+  - categoryId (ObjectId, required)
+  - recipe (array of {ingredientId, quantity})
+  - toppings (array of ObjectId)
+end note
+
+alt Validation Failed
+    ValidateMW --> Router: 400 Bad Request\n{error: validation details}
+    Router --> FE: Validation error
+    FE --> Admin: Show validation errors
+else Validation Passed
+    ValidateMW --> Router: Next()
+    deactivate ValidateMW
+end
+
+== Create Product ==
+
+Router -> Controller: createProduct(req, res)
+activate Controller
+
+Controller -> Controller: Extract image URL\nfrom req.file.path
+Controller -> Controller: Prepare productData:\n{...req.body, image: imageUrl}
+
+note right of Controller
+  productData = {
+    name, price, categoryId,
+    description, status,
+    image: cloudinary_url,
+    recipe: [{ingredientId, quantity}],
+    toppings: [toppingId1, toppingId2]
+  }
+end note
+
+Controller -> Service: createProduct(productData)
+activate Service
+
+Service -> Service: Validate image exists
+alt No Image URL
+    Service --> Controller: throw ApiError(400,\n"Product image is required")
+    Controller --> Router: 400 Bad Request
+    Router --> FE: Error response
+    FE --> Admin: Show error
+end
+
+Service -> DB: Product.create(productData)
+activate DB
+
+DB -> DB: Validate schema\n& unique constraints
+alt Product Name Already Exists
+    DB --> Service: Error: code 11000\n(Duplicate key)
+    Service -> Service: throw ApiError(400,\n"Product name already exists")
+    Service --> Controller: Error
+    Controller --> Router: 400 Bad Request
+    Router --> FE: Error response
+    FE --> Admin: "Product name already exists"
+else Success
+    DB -> DB: Generate _id\nSet createdAt, updatedAt
+    DB --> Service: Return created product
+    deactivate DB
+    
+    Service --> Controller: Return product object
+    deactivate Service
+    
+    Controller --> Router: 201 Created\n{product data}
+    deactivate Controller
+    
+    Router --> FE: Success response\n{_id, name, price, image, ...}
+    deactivate Router
+    
+    FE -> FE: Update product list\nShow success message
+    FE --> Admin: "Product created successfully!"
+    deactivate FE
+end
+
+@enduml

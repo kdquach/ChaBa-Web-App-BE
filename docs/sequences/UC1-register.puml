@@ -1,0 +1,266 @@
+@startuml UC1 Register
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam sequenceMessageAlign center
+skinparam BoxPadding 10
+
+title UC1 - Register (OTP-based)
+
+actor "Guest User" as User
+boundary "Register Page" as FE
+participant ":API Gateway\n(Express Router)" as Router
+participant ":validateMiddleware" as ValidateMW
+participant ":authController" as AuthCtrl
+participant ":authService" as AuthSvc
+participant ":userService" as UserSvc
+participant ":otpService" as OTPSvc
+participant ":emailService" as EmailSvc
+database "MongoDB\n(Users Collection)" as UserDB
+database "MongoDB\n(OTP Collection)" as OTPDB
+participant ":SMTP Server\n(Gmail)" as SMTP
+
+== Step 1: Send OTP ==
+
+User -> FE: Navigate to /register
+activate FE
+
+FE -> FE: Display registration form
+FE --> User: Show form fields:\n- Email, Password, Name, Phone
+
+User -> FE: Fill form and\nclick "Send OTP"
+
+FE -> FE: Validate form inputs\n(client-side)
+
+FE -> Router: POST /v1/auth/register/send-otp\nBody: {email, password, name, phone}
+activate Router
+
+Router -> ValidateMW: validate(authValidation.registerStep1)
+activate ValidateMW
+
+ValidateMW -> ValidateMW: Validate:\n- email (required, email format)\n- password (required, min 8 chars)\n- name (required)\n- phone (required)
+
+alt Validation Failed
+    ValidateMW --> Router: 400 Bad Request
+    Router --> FE: Validation errors
+    FE --> User: Show inline errors
+else Valid
+    ValidateMW --> Router: Next()
+    deactivate ValidateMW
+end
+
+Router -> AuthCtrl: registerStep1(req, res)
+activate AuthCtrl
+
+AuthCtrl -> AuthSvc: registerStep1(req.body)
+activate AuthSvc
+
+== Check Email Already Exists ==
+
+AuthSvc -> UserSvc: getUserByEmail(email)
+activate UserSvc
+
+UserSvc -> UserDB: User.findOne({ email })
+activate UserDB
+UserDB --> UserSvc: Return user or null
+deactivate UserDB
+
+alt Email Already Registered
+    UserSvc --> AuthSvc: Return existing user
+    deactivate UserSvc
+    
+    AuthSvc --> AuthCtrl: throw ApiError(400,\n"Email already taken")
+    AuthCtrl --> Router: 400 Bad Request
+    Router --> FE: Error response
+    FE --> User: "Email đã được đăng ký"
+end
+
+UserSvc --> AuthSvc: Email available
+deactivate UserSvc
+
+== Generate and Send OTP ==
+
+AuthSvc -> OTPSvc: createAndSendOTP(email, "REGISTER")
+activate OTPSvc
+
+OTPSvc -> OTPDB: OTP.deleteMany({\n  email, type: "REGISTER",\n  verified: false\n})
+activate OTPDB
+note right of OTPDB
+  Delete old unverified OTPs
+  to prevent spam
+end note
+OTPDB --> OTPSvc: Old OTPs deleted
+deactivate OTPDB
+
+OTPSvc -> OTPSvc: Generate random 6-digit OTP\ncrypto.randomInt(100000, 999999)
+
+OTPSvc -> OTPSvc: Set expiry = now + 10 minutes
+
+OTPSvc -> OTPDB: OTP.create({\n  email, otp, type: "REGISTER",\n  expiresAt, attempts: 0\n})
+activate OTPDB
+OTPDB --> OTPSvc: OTP saved
+deactivate OTPDB
+
+OTPSvc -> EmailSvc: sendVerificationOTP(email, otp)
+activate EmailSvc
+
+note right of EmailSvc
+  Email template:
+  Subject: "Mã xác minh đăng ký"
+  Body: "Mã OTP của bạn là: XXXXXX
+         Có hiệu lực trong 10 phút"
+end note
+
+EmailSvc -> SMTP: Send email via nodemailer
+activate SMTP
+SMTP --> EmailSvc: Email sent
+deactivate SMTP
+
+EmailSvc --> OTPSvc: Email delivered
+deactivate EmailSvc
+
+OTPSvc --> AuthSvc: OTP created and sent
+deactivate OTPSvc
+
+AuthSvc --> AuthCtrl: Success
+deactivate AuthSvc
+
+AuthCtrl --> Router: 200 OK\n{message: "OTP đã được gửi..."}
+deactivate AuthCtrl
+
+Router --> FE: Success response
+deactivate Router
+
+FE -> FE: Show OTP input field\nStart 10-minute countdown timer
+FE --> User: "Check your email for OTP"
+deactivate FE
+
+== Step 2: Verify OTP and Create Account ==
+
+User -> User: Open email\nCopy OTP code
+
+User -> FE: Enter OTP code\nClick "Verify & Register"
+activate FE
+
+FE -> Router: POST /v1/auth/register/verify-otp\nBody: {email, password, name, phone, otp}
+activate Router
+
+Router -> ValidateMW: validate(authValidation.registerStep2)
+activate ValidateMW
+ValidateMW -> ValidateMW: Validate all fields\nincluding otp (6 digits)
+ValidateMW --> Router: Next()
+deactivate ValidateMW
+
+Router -> AuthCtrl: registerStep2(req, res)
+activate AuthCtrl
+
+AuthCtrl -> AuthSvc: registerStep2(req.body, req.body.otp)
+activate AuthSvc
+
+== Verify OTP ==
+
+AuthSvc -> OTPSvc: verifyOTP(email, otp, "REGISTER")
+activate OTPSvc
+
+OTPSvc -> OTPDB: OTP.findOne({\n  email, type: "REGISTER",\n  verified: false,\n  expiresAt: {$gt: now}\n})
+activate OTPDB
+OTPDB --> OTPSvc: Return OTP document
+deactivate OTPDB
+
+alt OTP Not Found or Expired
+    OTPSvc --> AuthSvc: throw ApiError(400,\n"OTP không tồn tại hoặc đã hết hạn")
+    AuthSvc --> AuthCtrl: Error
+    AuthCtrl --> Router: 400 Bad Request
+    Router --> FE: Error response
+    FE --> User: "OTP expired, request new one"
+end
+
+OTPSvc -> OTPSvc: Check attempts < 5
+
+alt Too Many Attempts
+    OTPSvc -> OTPDB: OTP.deleteOne({_id})
+    activate OTPDB
+    deactivate OTPDB
+    OTPSvc --> AuthSvc: throw ApiError(429,\n"Đã vượt quá số lần thử")
+end
+
+OTPSvc -> OTPDB: otpDoc.attempts += 1\notpDoc.save()
+activate OTPDB
+deactivate OTPDB
+
+OTPSvc -> OTPSvc: Compare otp with otpDoc.otp
+
+alt OTP Mismatch
+    OTPSvc --> AuthSvc: throw ApiError(400,\n"OTP không đúng")
+    AuthSvc --> AuthCtrl: Error
+    AuthCtrl --> Router: 400 Bad Request
+    Router --> FE: Error response
+    FE --> User: "Wrong OTP, try again"
+end
+
+OTPSvc -> OTPDB: otpDoc.verified = true\notpDoc.save()
+activate OTPDB
+deactivate OTPDB
+
+OTPSvc --> AuthSvc: OTP verified successfully
+deactivate OTPSvc
+
+== Create User Account ==
+
+AuthSvc -> UserSvc: createUser({\n  email, password, name, phone,\n  isEmailVerified: true\n})
+activate UserSvc
+
+UserSvc -> UserDB: User.create({...userData})
+activate UserDB
+
+note right of UserDB
+  Password is automatically hashed
+  by pre-save hook using bcrypt
+  
+  Default values:
+  - provider: "local"
+  - role: "user"
+  - status: "active"
+end note
+
+UserDB --> UserSvc: Return created user
+deactivate UserDB
+
+UserSvc --> AuthSvc: Return user
+deactivate UserSvc
+
+AuthSvc -> OTPDB: OTP.deleteMany({\n  email, type: "REGISTER"\n})
+activate OTPDB
+note right of OTPDB
+  Clean up OTP records
+  after successful registration
+end note
+deactivate OTPDB
+
+AuthSvc --> AuthCtrl: Return user
+deactivate AuthSvc
+
+== Generate Auth Tokens ==
+
+AuthCtrl -> AuthCtrl: tokenService.generateAuthTokens(user)
+
+note right of AuthCtrl
+  Generate:
+  - Access Token (30 min)
+  - Refresh Token (30 days)
+end note
+
+AuthCtrl --> Router: 201 Created\n{user, tokens}
+deactivate AuthCtrl
+
+Router --> FE: Success response
+deactivate Router
+
+== User Logged In ==
+
+FE -> FE: Store tokens
+FE -> FE: Store user info
+FE -> FE: Set Authorization header
+FE --> User: Redirect to dashboard\n"Registration successful!"
+deactivate FE
+
+@enduml

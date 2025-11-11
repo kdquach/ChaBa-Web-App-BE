@@ -1,0 +1,177 @@
+@startuml Ingredient Management - Class Diagram
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+
+skinparam class {
+  BackgroundColor<<Controller>> #B3D9FF
+  BackgroundColor<<Service>> #C8E6C9
+  BackgroundColor<<Model>> #FFF9C4
+  BackgroundColor<<Util>> #E0E0E0
+  BorderColor #666666
+  FontSize 12
+}
+
+title Ingredient Management Module
+
+' ========== CONTROLLER ==========
+class IngredientController <<Controller>> {
+  + getIngredients(req, res)
+  + getIngredient(req, res)
+  + createIngredient(req, res)
+  + updateIngredient(req, res)
+  + deleteIngredient(req, res)
+  + checkStock(req, res)
+  + updateStock(req, res)
+}
+
+class IngredientCategoryController <<Controller>> {
+  + getCategories(req, res)
+  + getCategory(req, res)
+  + createCategory(req, res)
+  + updateCategory(req, res)
+  + deleteCategory(req, res)
+}
+
+' ========== SERVICE ==========
+class IngredientService <<Service>> {
+  + createIngredient(ingredientBody)
+  + queryIngredients(filter, options)
+  + getIngredientById(id)
+  + updateIngredientById(id, updateBody)
+  + deleteIngredientById(id)
+  + checkStockLevel(id)
+  + updateStock(id, quantity, operation)
+  + getLowStockIngredients()
+  + getExpiringIngredients(days)
+}
+
+class IngredientCategoryService <<Service>> {
+  + createCategory(categoryBody)
+  + queryCategories(filter, options)
+  + getCategoryById(id)
+  + updateCategoryById(id, updateBody)
+  + deleteCategoryById(id)
+}
+
+' ========== MODEL ==========
+class Ingredient <<Model>> {
+  - _id: ObjectId
+  - name: String
+  - unit: String
+  - stock: Number
+  - minStock: Number
+  - maxStock: Number
+  - price: Number
+  - expiryDate: Date
+  - supplier: String
+  - description: String
+  - categoryId: ObjectId
+  - createdAt: Date
+  - updatedAt: Date
+  --
+  + isLowStock(): Boolean
+  + isExpiringSoon(days): Boolean
+  + addStock(quantity): void
+  + reduceStock(quantity): void
+}
+
+class IngredientCategory <<Model>> {
+  - _id: ObjectId
+  - name: String
+  - description: String
+  - createdAt: Date
+  - updatedAt: Date
+}
+
+' ========== UTILITIES ==========
+class ApiError <<Util>> {
+  - statusCode: Number
+  - message: String
+}
+
+class CatchAsync <<Util>> {
+  + wrap(fn): Function
+}
+
+interface ValidateMiddleware <<Util>> {
+  + validate(schema)
+}
+
+interface AuthMiddleware <<Util>> {
+  + auth(...requiredRights)
+}
+
+' ========== RELATIONSHIPS ==========
+
+' Controllers -> Services (Dependency)
+IngredientController ..> IngredientService : <<uses>>
+IngredientCategoryController ..> IngredientCategoryService : <<uses>>
+
+' Controllers -> Utils (Dependency)
+IngredientController ..> CatchAsync : <<uses>>
+IngredientController ..> ValidateMiddleware : <<uses>>
+IngredientController ..> AuthMiddleware : <<uses>>
+IngredientCategoryController ..> CatchAsync : <<uses>>
+
+' Services -> Models (Association)
+IngredientService --> Ingredient : manages
+IngredientCategoryService --> IngredientCategory : manages
+
+' Services -> Utils (Dependency)
+IngredientService ..> ApiError : <<throws>>
+IngredientCategoryService ..> ApiError : <<throws>>
+
+' Model Associations
+Ingredient --> IngredientCategory : belongs to
+
+note right of Ingredient
+  Represents raw materials used
+  in product recipes.
+  Tracks stock levels, expiry dates,
+  and supplier information.
+end note
+
+note bottom of IngredientService
+  Core business logic for:
+  • Stock management
+  • Low stock alerts
+  • Expiry tracking
+  • Supplier management
+end note
+
+note left of IngredientCategory
+  Categorizes ingredients
+  (e.g., Coffee Beans, Milk,
+  Syrups, Toppings)
+end note
+
+legend right
+  <b>Ingredient Management Module</b>
+  
+  Responsibilities:
+  • Ingredient CRUD operations
+  • Stock level tracking
+  • Low stock alerts
+  • Expiry date monitoring
+  • Category management
+  • Supplier information
+  
+  <b>Key Features:</b>
+  • Min/Max stock levels
+  • Automatic low stock detection
+  • Expiry date alerts
+  • Stock operations (add/reduce)
+  • Price tracking per unit
+  
+  <b>Business Rules:</b>
+  • Alert when stock < minStock
+  • Track expiry dates
+  • Multiple units (kg, liter, etc.)
+  
+  <b>Relationships:</b>
+  ..> Dependency (uses)
+  --> Association (manages)
+end legend
+
+@enduml

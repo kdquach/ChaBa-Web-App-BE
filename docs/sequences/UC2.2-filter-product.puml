@@ -1,0 +1,261 @@
+@startuml UC2.2 Filter Product
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam sequenceMessageAlign center
+skinparam BoxPadding 10
+
+title UC2.2 - Filter Product
+
+actor "Guest/User" as User
+boundary "Product Catalog\nPage" as FE
+participant ":API Gateway\n(Express Router)" as Router
+participant ":authMiddleware" as AuthMW
+participant ":validateMiddleware" as ValidateMW
+participant ":productController" as Controller
+participant ":productService" as Service
+database "MongoDB\n(Product Collection)" as DB
+
+== User Opens Filter Panel ==
+
+User -> FE: Open product catalog
+activate FE
+
+FE -> FE: Load filter options:\n- Categories (from API)\n- Status options\n- Price ranges\n- Sort options
+
+note right of FE
+  Filter UI Components:
+  ┌─ Filters ─────────┐
+  │ Category:         │
+  │ □ Trà sữa        │
+  │ □ Cà phê        │
+  │ □ Sinh tố       │
+  │                   │
+  │ Status:           │
+  │ ○ All            │
+  │ ● Đang bán       │
+  │ ○ Ngừng bán      │
+  │                   │
+  │ Sort by:          │
+  │ ▼ Newest first    │
+  │                   │
+  │ [Apply Filters]   │
+  └───────────────────┘
+end note
+
+FE --> User: Show filter panel
+
+== User Applies Filters ==
+
+User -> FE: Select filters:\n- Category: "Trà sữa"\n- Status: "Đang bán"\n- Sort: "price:asc"
+
+FE -> FE: Update filter state:\nfilters = {\n  category: "507f...",\n  status: "Đang bán"\n}\nsortBy = "price:asc"\npage = 1 (reset to first page)
+
+FE -> Router: GET /v1/products?\ncategory=507f...&\nstatus=Đang bán&\nsortBy=price:asc&\npage=1&limit=12
+activate Router
+
+note right of FE
+  Query string with filters:
+  /v1/products?
+    category=507f1f77bcf86cd799439011
+    &status=Đang bán
+    &sortBy=price:asc
+    &page=1
+    &limit=12
+end note
+
+== Authentication ==
+
+Router -> AuthMW: auth("getProducts")
+activate AuthMW
+AuthMW -> AuthMW: Verify token (optional)
+AuthMW --> Router: Next()
+deactivate AuthMW
+
+== Validation ==
+
+Router -> ValidateMW: validate(productValidation.getProducts)
+activate ValidateMW
+
+ValidateMW -> ValidateMW: Validate query params:\n- category (valid ObjectId)\n- status (enum: "Đang bán", "Ngừng bán")\n- sortBy (string format)\n- page, limit (integers)
+
+alt Invalid Filters
+    ValidateMW --> Router: 400 Bad Request\n{error: "Invalid category ID"}
+    Router --> FE: Validation error
+    FE --> User: Show error message
+else Valid
+    ValidateMW --> Router: Next()
+    deactivate ValidateMW
+end
+
+== Apply Filters and Fetch ==
+
+Router -> Controller: getProducts(req, res)
+activate Controller
+
+Controller -> Controller: Build filter object:\nfilter = {\n  category: ObjectId("507f..."),\n  status: "Đang bán"\n}
+
+Controller -> Controller: Build options:\noptions = {\n  sortBy: "price:asc",\n  page: 1,\n  limit: 12,\n  populate: "categoryId"\n}
+
+Controller -> Service: queryProducts(filter, options)
+activate Service
+
+Service -> DB: Product.paginate(filter, options)
+activate DB
+
+DB -> DB: Build filtered query:\n{\n  categoryId: ObjectId("507f..."),\n  status: "Đang bán"\n}
+
+DB -> DB: Apply sort: {price: 1} (ascending)
+
+DB -> DB: Populate category details
+
+DB -> DB: Execute query with pagination
+
+note right of DB
+  MongoDB query:
+  db.products.find({
+    categoryId: ObjectId("507f..."),
+    status: "Đang bán"
+  })
+  .populate("categoryId")
+  .sort({price: 1})
+  .skip(0)
+  .limit(12)
+  
+  + Count query for total
+end note
+
+DB --> Service: Return filtered results
+deactivate DB
+
+note right of Service
+  Filtered results:
+  {
+    results: [
+      {
+        _id, name,
+        price: 35000,  // sorted by price
+        image, status,
+        categoryId: {_id, name: "Trà sữa"},
+        ...
+      },
+      {price: 40000, ...},
+      {price: 42000, ...},
+      ...
+    ],
+    page: 1,
+    limit: 12,
+    totalPages: 2,
+    totalResults: 18  // only "Đang bán" in "Trà sữa"
+  }
+end note
+
+Service --> Controller: Return filtered products
+deactivate Service
+
+Controller --> Router: 200 OK\n{filtered results}
+deactivate Controller
+
+Router --> FE: Success response
+deactivate Router
+
+== Display Filtered Results ==
+
+FE -> FE: Clear current product list
+
+FE -> FE: Render filtered products\n(sorted by price ascending)
+
+FE -> FE: Update result count:\n"Found 18 products in Trà sữa"
+
+FE -> FE: Update pagination\n(2 pages total)
+
+FE -> FE: Highlight active filters\n(show "Remove filter" badges)
+
+note right of FE
+  Active Filter Tags:
+  ┌───────────────────────┐
+  │ Filters Applied:      │
+  │ [Trà sữa ✕]          │
+  │ [Đang bán ✕]         │
+  │ [Clear All]           │
+  └───────────────────────┘
+end note
+
+FE --> User: Display filtered product list\n"18 products found"
+deactivate FE
+
+== User Removes a Filter ==
+
+User -> FE: Click remove "Trà sữa" filter
+activate FE
+
+FE -> FE: Update filter state:\nRemove category filter\nfilters = {status: "Đang bán"}
+
+FE -> Router: GET /v1/products?\nstatus=Đang bán&\nsortBy=price:asc&\npage=1&limit=12
+activate Router
+
+note right of FE
+  New query without category filter
+end note
+
+Router -> AuthMW: auth("getProducts")
+activate AuthMW
+AuthMW --> Router: Next()
+deactivate AuthMW
+
+Router -> Controller: getProducts(req, res)
+activate Controller
+Controller -> Service: queryProducts({status: "Đang bán"}, options)
+activate Service
+Service -> DB: Product.paginate(filter, options)
+activate DB
+
+DB -> DB: Query all products\nwith status "Đang bán"\n(no category filter)
+
+DB --> Service: Return broader results
+deactivate DB
+Service --> Controller: Return products
+deactivate Service
+Controller --> Router: 200 OK\n{expanded results}
+deactivate Controller
+Router --> FE: Success response
+deactivate Router
+
+FE -> FE: Update product list\nUpdate result count: "45 products found"
+FE --> User: Display expanded results
+deactivate FE
+
+== User Clears All Filters ==
+
+User -> FE: Click "Clear All Filters"
+activate FE
+
+FE -> FE: Reset filter state:\nfilters = {}\nsortBy = "createdAt:desc"\npage = 1
+
+FE -> Router: GET /v1/products?\npage=1&limit=12&sortBy=createdAt:desc
+activate Router
+
+Router -> AuthMW: auth("getProducts")
+activate AuthMW
+AuthMW --> Router: Next()
+deactivate AuthMW
+
+Router -> Controller: getProducts(req, res)
+activate Controller
+Controller -> Service: queryProducts({}, options)
+activate Service
+Service -> DB: Product.paginate({}, options)
+activate DB
+DB --> Service: Return all products
+deactivate DB
+Service --> Controller: Return products
+deactivate Service
+Controller --> Router: 200 OK\n{all products}
+deactivate Controller
+Router --> FE: Success response
+deactivate Router
+
+FE -> FE: Display all products\nReset filter UI
+FE --> User: "Showing all products"
+deactivate FE
+
+@enduml

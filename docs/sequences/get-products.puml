@@ -1,0 +1,181 @@
+@startuml Get Products List Sequence
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam sequenceMessageAlign center
+skinparam BoxPadding 10
+
+title Get Products List Flow - TheTrois System
+
+actor "User" as User
+boundary "Product Management\nPage / Catalog" as FE
+participant ":API Gateway\n(Express Router)" as Router
+participant ":authMiddleware" as AuthMW
+participant ":validateMiddleware" as ValidateMW
+participant ":productController" as Controller
+participant ":productService" as Service
+database "MongoDB\n(Product Collection)" as DB
+
+== Initial Page Load ==
+
+User -> FE: Navigate to products page
+activate FE
+
+FE -> FE: Set query params:\n- page=1, limit=10\n- filters (category, status)\n- sortBy
+
+FE -> Router: GET /v1/products?\npage=1&limit=10&category=:id&status=Đang bán\nHeaders: {Authorization: Bearer <token>}
+activate Router
+
+== Authentication ==
+
+Router -> AuthMW: auth("getProducts")
+activate AuthMW
+
+AuthMW -> AuthMW: Verify JWT token\nCheck "getProducts" permission
+
+alt Invalid Token
+    AuthMW --> Router: 401 Unauthorized
+    Router --> FE: Error response
+    FE --> User: Show login prompt
+else Valid Token
+    AuthMW -> AuthMW: Attach req.user
+    AuthMW --> Router: Next()
+    deactivate AuthMW
+end
+
+== Validation ==
+
+Router -> ValidateMW: validate(productValidation.getProducts)
+activate ValidateMW
+
+ValidateMW -> ValidateMW: Validate query params:\n- page, limit (integers)\n- category (ObjectId)\n- status, sortBy (strings)
+
+alt Invalid Query Params
+    ValidateMW --> Router: 400 Bad Request
+    Router --> FE: Validation errors
+    FE --> User: Show error message
+else Valid
+    ValidateMW --> Router: Next()
+    deactivate ValidateMW
+end
+
+== Fetch Products ==
+
+Router -> Controller: getProducts(req, res)
+activate Controller
+
+Controller -> Controller: Extract filter fields:\npick(req.query, ["name", "category", "status"])
+Controller -> Controller: Extract options:\npick(req.query, ["sortBy", "limit", "page"])
+Controller -> Controller: Set populate: "category"
+
+note right of Controller
+  Filter example:
+  {
+    category: "507f1f77bcf86cd799439011",
+    status: "Đang bán"
+  }
+  
+  Options example:
+  {
+    sortBy: "createdAt:desc",
+    limit: 10,
+    page: 1,
+    populate: "category"
+  }
+end note
+
+Controller -> Service: queryProducts(filter, options)
+activate Service
+
+Service -> DB: Product.paginate(filter, options)
+activate DB
+
+DB -> DB: Build MongoDB query\nApply filters, sorting, pagination
+DB -> DB: Populate category details
+DB -> DB: Count total documents
+
+note right of DB
+  MongoDB operations:
+  1. Find: {category: ObjectId, status: "Đang bán"}
+  2. Populate: categoryId → full category object
+  3. Sort: {createdAt: -1}
+  4. Skip: (page-1) * limit
+  5. Limit: 10
+  6. Count total matching docs
+end note
+
+DB --> Service: Return paginated results
+deactivate DB
+
+note right of Service
+  Response structure:
+  {
+    results: [
+      {_id, name, price, image,
+       category: {_id, name, description},
+       status, recipe, toppings}
+    ],
+    page: 1,
+    limit: 10,
+    totalPages: 5,
+    totalResults: 47
+  }
+end note
+
+Service --> Controller: Return paginated products
+deactivate Service
+
+Controller --> Router: 200 OK\n{results, page, limit, totalPages, totalResults}
+deactivate Controller
+
+Router --> FE: Success response
+deactivate Router
+
+== Render Results ==
+
+FE -> FE: Parse response data
+FE -> FE: Render product cards/table
+FE -> FE: Setup pagination controls\n(1, 2, 3... 5)
+FE --> User: Display products list
+
+== Pagination / Filtering ==
+
+User -> FE: Click page 2 or\nchange filter/sort
+activate FE
+
+FE -> Router: GET /v1/products?\npage=2&limit=10&sortBy=price:asc
+activate Router
+
+note right of FE
+  User can:
+  - Navigate to next/prev page
+  - Change sort order
+  - Filter by category
+  - Filter by status
+  - Search by name
+end note
+
+Router -> AuthMW: auth("getProducts")
+activate AuthMW
+AuthMW --> Router: Next()
+deactivate AuthMW
+
+Router -> Controller: getProducts(req, res)
+activate Controller
+Controller -> Service: queryProducts(filter, options)
+activate Service
+Service -> DB: Product.paginate(filter, options)
+activate DB
+DB --> Service: Return page 2 results
+deactivate DB
+Service --> Controller: Return products
+deactivate Service
+Controller --> Router: 200 OK {page 2 data}
+deactivate Controller
+Router --> FE: Success response
+deactivate Router
+
+FE -> FE: Update product list\nUpdate pagination UI
+FE --> User: Display updated results
+deactivate FE
+
+@enduml

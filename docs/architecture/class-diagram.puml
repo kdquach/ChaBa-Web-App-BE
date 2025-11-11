@@ -1,0 +1,157 @@
+@startuml TheTrois Backend - Class Diagram
+skinparam classAttributeIconSize 0
+skinparam nodesep 70
+skinparam ranksep 100
+skinparam linetype polyline
+skinparam shadowing false
+
+skinparam class {
+  BackgroundColor<<Controllers>> #B3D9FF
+  BackgroundColor<<Services>> #C8E6C9
+  BackgroundColor<<Models>> #FFF9C4
+  BackgroundColor<<Utils>> #E0E0E0
+  BorderColor #666666
+  ArrowColor #555555
+  FontSize 12
+}
+
+skinparam package {
+  BorderColor #999999
+  FontStyle bold
+}
+
+left to right direction
+
+package "Controllers" <<Controllers>> {
+  abstract class BaseController
+  class AuthController
+  class UserController
+  class ProductController
+  class CartController
+  class OrderController
+}
+
+package "Services" <<Services>> {
+  class AuthService
+  class UserService
+  class ProductService
+  class CartService
+  class OrderService
+  class TokenService
+  class EmailService
+}
+
+package "Models" <<Models>> {
+  class User {
+    - email, password, role
+    - addresses: Address[]
+  }
+  class Address
+  
+  class Product {
+    - name, price, image
+    - categoryId
+    - recipe: Recipe[]
+  }
+  class Recipe
+  class ProductCategory
+  class Ingredient
+  class Topping
+  
+  class Cart {
+    - userId
+    - items: CartItem[]
+  }
+  class CartItem
+  
+  class Order {
+    - userId
+    - products: OrderItem[]
+    - payment: Payment
+  }
+  class OrderItem
+  class Payment
+  
+  class Feedback {
+    - userId, productId
+    - rating, content
+  }
+  
+  class Token
+}
+
+package "Utils" <<Utils>> {
+  class ApiError
+  class CatchAsync
+  interface AuthMiddleware
+  interface ValidateMiddleware
+}
+
+' === INHERITANCE ===
+AuthController --|> BaseController
+UserController --|> BaseController
+ProductController --|> BaseController
+CartController --|> BaseController
+OrderController --|> BaseController
+
+' === DEPENDENCIES (Controllers -> Services) ===
+AuthController ..> AuthService
+UserController ..> UserService
+ProductController ..> ProductService
+CartController ..> CartService
+OrderController ..> OrderService
+
+' === DEPENDENCIES (Controllers -> Utils) ===
+AuthController ..> CatchAsync : <<uses>>
+UserController ..> CatchAsync : <<uses>>
+ProductController ..> CatchAsync : <<uses>>
+CartController ..> CatchAsync : <<uses>>
+OrderController ..> CatchAsync : <<uses>>
+
+AuthController ..> AuthMiddleware : <<uses>>
+UserController ..> AuthMiddleware : <<uses>>
+ProductController ..> ValidateMiddleware : <<uses>>
+
+' === ASSOCIATIONS (Services -> Models) ===
+AuthService --> User
+UserService --> User
+ProductService --> Product
+CartService --> Cart
+OrderService --> Order
+
+' === DEPENDENCIES (Services -> Utils) ===
+AuthService ..> ApiError : <<throws>>
+UserService ..> ApiError : <<throws>>
+ProductService ..> ApiError : <<throws>>
+EmailService ..> ApiError : <<throws>>
+
+' === COMPOSITION (owns) ===
+User *-- Address
+Product *-- Recipe
+Cart *-- CartItem
+Order *-- OrderItem
+Order *-- Payment
+
+' === ASSOCIATIONS (Model references) ===
+Product --> ProductCategory
+Recipe --> Ingredient
+Product --> Topping
+CartItem --> Product
+Order --> User
+Cart --> User
+Feedback --> User
+Feedback --> Product
+Token --> User
+
+legend right
+  <b>Layers:</b>
+  Controllers → Services → Models
+  
+  <b>Relationships:</b>
+  --|> Inheritance
+  --> Association
+  ..> Dependency
+  *-- Composition
+end legend
+
+@enduml

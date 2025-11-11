@@ -1,0 +1,219 @@
+@startuml UC24.2 Login With Google
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam sequenceMessageAlign center
+skinparam BoxPadding 10
+
+title UC24.2 - Login With Google
+
+actor "User" as User
+boundary "Login Page" as FE
+participant ":Google OAuth\n(Google Servers)" as Google
+participant ":API Gateway\n(Express Router)" as Router
+participant ":validateMiddleware" as ValidateMW
+participant ":authController" as AuthCtrl
+participant ":authService" as AuthSvc
+participant ":googleVerify\nUtility" as GoogleVerify
+participant ":OAuth2Client\n(google-auth-library)" as OAuth2Client
+participant ":userService" as UserSvc
+participant ":tokenService" as TokenSvc
+database "MongoDB\n(Users Collection)" as UserDB
+database "MongoDB\n(Tokens Collection)" as TokenDB
+
+== User Initiates Google Login ==
+
+User -> FE: Navigate to /login
+activate FE
+
+FE -> FE: Display login page with\n"Sign in with Google" button
+
+note right of FE
+  Google Sign-In button options:
+  - One Tap sign-in
+  - Google Sign-In button
+  - Custom styled button
+end note
+
+FE --> User: Show login options
+User -> FE: Click "Sign in with Google"
+
+FE -> Google: Trigger Google OAuth flow\n(using Google Identity Services)
+activate Google
+
+note right of FE
+  Google Sign-In SDK:
+  - @react-oauth/google (React)
+  - expo-auth-session (React Native)
+  - gsi client library (Web)
+end note
+
+Google -> Google: User authenticates\nwith Google account
+
+Google --> User: Show Google account picker\nand consent screen
+
+User -> Google: Select account &\ngrant permissions
+
+Google -> Google: Generate ID Token (JWT)\nwith user info
+
+Google --> FE: Return credential response\n{credential: ID_TOKEN}
+deactivate Google
+
+note right of FE
+  ID Token (JWT) contains:
+  {
+    iss: "accounts.google.com",
+    sub: "google_user_id",
+    email: "user@gmail.com",
+    email_verified: true,
+    name: "John Doe",
+    picture: "https://..."
+  }
+end note
+
+== Send Token to Backend ==
+
+FE -> Router: POST /v1/auth/google\nBody: { token: ID_TOKEN }
+activate Router
+
+== Validation ==
+
+Router -> ValidateMW: validate(authValidation.googleLogin)
+activate ValidateMW
+
+ValidateMW -> ValidateMW: Validate body:\n- token (string, required)
+
+alt Invalid Request Body
+    ValidateMW --> Router: 400 Bad Request
+    Router --> FE: Validation error
+    FE --> User: "Invalid Google token"
+else Valid
+    ValidateMW --> Router: Next()
+    deactivate ValidateMW
+end
+
+== Process Google Login ==
+
+Router -> AuthCtrl: googleLogin(req, res)
+activate AuthCtrl
+
+AuthCtrl -> AuthCtrl: Extract token from req.body
+
+AuthCtrl -> AuthSvc: googleLogin(token)
+activate AuthSvc
+
+== Verify Google Token ==
+
+AuthSvc -> GoogleVerify: verifyGoogleToken(token)
+activate GoogleVerify
+
+GoogleVerify -> OAuth2Client: verifyIdToken({\n  idToken: token,\n  audience: GOOGLE_CLIENT_ID\n})
+activate OAuth2Client
+
+note right of OAuth2Client
+  Google validates:
+  1. Token signature (RSA)
+  2. Token not expired
+  3. Audience matches client ID
+  4. Issuer is Google
+end note
+
+OAuth2Client -> Google: Verify token signature\nwith Google's public keys
+activate Google
+Google --> OAuth2Client: Token valid
+deactivate Google
+
+OAuth2Client -> OAuth2Client: Parse JWT payload
+
+OAuth2Client --> GoogleVerify: Return ticket with payload
+deactivate OAuth2Client
+
+GoogleVerify -> GoogleVerify: Extract user info:\n{\n  email, name, picture,\n  googleId, emailVerified\n}
+
+alt Invalid Token
+    GoogleVerify --> AuthSvc: throw Error("Invalid Google token")
+    AuthSvc --> AuthCtrl: throw ApiError(401,\n"Invalid Google token")
+    AuthCtrl --> Router: 401 Unauthorized
+    Router --> FE: Error response
+    FE --> User: "Google login failed"
+end
+
+GoogleVerify --> AuthSvc: Return googleUser object
+deactivate GoogleVerify
+
+== Check/Create User ==
+
+AuthSvc -> UserDB: User.findOne({ email: googleUser.email })
+activate UserDB
+
+UserDB --> AuthSvc: Return existing user or null
+deactivate UserDB
+
+alt User Not Found (First Time Google Login)
+    AuthSvc -> UserDB: User.create({\n  name: googleUser.name,\n  email: googleUser.email,\n  provider: "google",\n  providerId: googleUser.googleId,\n  isEmailVerified: true,\n  avatar: googleUser.picture\n})
+    activate UserDB
+    
+    note right of UserDB
+      New user created:
+      - No password field
+      - provider = "google"
+      - Auto-verified email
+      - Default role: "user"
+    end note
+    
+    UserDB --> AuthSvc: Return new user
+    deactivate UserDB
+
+else User Exists with Local Provider
+    AuthSvc --> AuthCtrl: throw ApiError(409,\n"Email đã được đăng ký\nbằng tài khoản thường")
+    AuthCtrl --> Router: 409 Conflict
+    Router --> FE: Error response
+    FE --> User: "Email already registered\nwith password login"
+
+else User Exists with Google Provider
+    AuthSvc -> AuthSvc: User already registered\nwith Google, proceed
+end
+
+AuthSvc --> AuthCtrl: Return user
+deactivate AuthSvc
+
+== Generate Auth Tokens ==
+
+AuthCtrl -> TokenSvc: generateAuthTokens(user)
+activate TokenSvc
+
+TokenSvc -> TokenSvc: Generate Access Token\n(JWT, 30 min expiry)
+TokenSvc -> TokenSvc: Generate Refresh Token\n(JWT, 30 days expiry)
+
+TokenSvc -> TokenDB: Token.create({\n  token: refreshToken,\n  user: user._id,\n  type: "refresh",\n  expires: date\n})
+activate TokenDB
+TokenDB --> TokenSvc: Token saved
+deactivate TokenDB
+
+TokenSvc --> AuthCtrl: Return {\n  access: {token, expires},\n  refresh: {token, expires}\n}
+deactivate TokenSvc
+
+== Success Response ==
+
+AuthCtrl --> Router: 200 OK\n{ user, tokens }
+deactivate AuthCtrl
+
+Router --> FE: Success response
+deactivate Router
+
+== Update Client State ==
+
+FE -> FE: Store tokens:\n- accessToken in memory\n- refreshToken in secure storage
+
+FE -> FE: Store user info:\n{\n  _id, name, email, avatar,\n  provider: "google",\n  isEmailVerified: true\n}
+
+FE -> FE: Set Authorization header
+
+FE --> User: Redirect to dashboard/home
+deactivate FE
+
+note right of User
+  Google login complete!
+  User authenticated without password
+end note
+
+@enduml

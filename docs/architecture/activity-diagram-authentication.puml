@@ -1,0 +1,263 @@
+@startuml User Authentication - Activity Diagram
+skinparam activityFontSize 11
+skinparam activityDiamondFontSize 10
+skinparam activityArrowFontSize 10
+skinparam backgroundColor #FFFFFF
+skinparam activity {
+  BackgroundColor #87CEEB
+  BorderColor #4682B4
+  FontColor #000000
+}
+
+title User Authentication & Registration - Activity Diagram
+
+|User|
+start
+:Access application;
+
+:Select authentication method;
+
+if (Method?) then (Register)
+  |User|
+  :Select Register;
+  :Choose registration type;
+  
+  if (Type?) then (Email/Password)
+    |User|
+    :Enter email;
+    
+    |System|
+    :Send OTP to email;
+    
+    |User|
+    :Enter OTP code;
+    
+    |System|
+    :Verify OTP;
+    
+    if (OTP valid?) then (yes)
+      |User|
+      :Enter user details
+      (name, password, phone);
+      :Submit registration;
+      
+      |System|
+      :Validate user data;
+      
+      if (Valid data?) then (yes)
+        :Check if email exists;
+        
+        if (Email exists?) then (yes)
+          :Return error message
+          (email already taken);
+          
+          |User|
+          :View error notification;
+          stop
+        else (no)
+          :Hash password;
+          :Create user account;
+          :Generate auth tokens;
+          :Return success + tokens;
+          
+          |User|
+          :View success notification;
+          :Redirect to home page;
+        endif
+      else (no)
+        |System|
+        :Return validation errors;
+        
+        |User|
+        :View error messages;
+        :Correct errors;
+      endif
+    else (no)
+      |System|
+      :Return error
+      (invalid/expired OTP);
+      
+      |User|
+      :View error notification;
+      :Request new OTP;
+    endif
+    
+  elseif (Google) then
+    |User|
+    :Click "Sign in with Google";
+    :Authenticate with Google;
+    :Grant permissions;
+    
+    |System|
+    :Receive Google ID token;
+    :Verify token with Google;
+    
+    if (Token valid?) then (yes)
+      :Extract user info
+      (email, name, picture);
+      :Check if user exists;
+      
+      if (User exists?) then (yes)
+        :Retrieve user account;
+      else (no)
+        :Create new user account
+        with Google provider;
+      endif
+      
+      :Generate auth tokens;
+      :Return success + tokens;
+      
+      |User|
+      :Redirect to home page;
+    else (no)
+      |System|
+      :Return error message;
+      
+      |User|
+      :View error notification;
+    endif
+    
+  else (Facebook)
+    |User|
+    :Click "Sign in with Facebook";
+    :Authenticate with Facebook;
+    :Grant permissions;
+    
+    |System|
+    :Receive Facebook access token;
+    :Verify token with Facebook;
+    
+    if (Token valid?) then (yes)
+      :Extract user info
+      (email, name, picture);
+      :Check if user exists;
+      
+      if (User exists?) then (yes)
+        :Retrieve user account;
+      else (no)
+        :Create new user account
+        with Facebook provider;
+      endif
+      
+      :Generate auth tokens;
+      :Return success + tokens;
+      
+      |User|
+      :Redirect to home page;
+    else (no)
+      |System|
+      :Return error message;
+      
+      |User|
+      :View error notification;
+    endif
+  endif
+
+elseif (Login) then
+  |User|
+  :Enter email and password;
+  :Submit login form;
+  
+  |System|
+  :Validate credentials;
+  :Find user by email;
+  
+  if (User exists?) then (yes)
+    :Compare password hash;
+    
+    if (Password correct?) then (yes)
+      :Generate auth tokens
+      (access + refresh);
+      :Save refresh token;
+      :Return success + tokens;
+      
+      |User|
+      :Store tokens;
+      :Redirect to home page;
+    else (no)
+      |System|
+      :Return error
+      (incorrect password);
+      
+      |User|
+      :View error notification;
+      :Retry login;
+    endif
+  else (no)
+    |System|
+    :Return error
+    (user not found);
+    
+    |User|
+    :View error notification;
+    :Retry login;
+  endif
+
+else (Forgot Password)
+  |User|
+  :Click "Forgot Password";
+  :Enter email;
+  
+  |System|
+  :Check if email exists;
+  
+  if (Email exists?) then (yes)
+    :Generate OTP;
+    :Send OTP to email;
+    :Return success message;
+    
+    |User|
+    :View OTP sent notification;
+    :Enter OTP code;
+    
+    |System|
+    :Verify OTP;
+    
+    if (OTP valid?) then (yes)
+      |User|
+      :Enter new password;
+      :Confirm password;
+      :Submit;
+      
+      |System|
+      :Validate password;
+      
+      if (Valid password?) then (yes)
+        :Hash new password;
+        :Update user password;
+        :Delete used OTP;
+        :Return success message;
+        
+        |User|
+        :View success notification;
+        :Redirect to login;
+      else (no)
+        |System|
+        :Return validation error;
+        
+        |User|
+        :View error message;
+        :Correct password;
+      endif
+    else (no)
+      |System|
+      :Return error
+      (invalid/expired OTP);
+      
+      |User|
+      :View error notification;
+      :Request new OTP;
+    endif
+  else (no)
+    |System|
+    :Return error
+    (email not found);
+    
+    |User|
+    :View error notification;
+  endif
+endif
+
+stop
+
+@enduml

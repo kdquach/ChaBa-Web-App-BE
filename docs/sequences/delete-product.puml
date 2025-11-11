@@ -1,0 +1,171 @@
+@startuml Delete Product Sequence
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam sequenceMessageAlign center
+skinparam BoxPadding 10
+
+title Delete Product Flow - TheTrois System
+
+actor "Admin User" as Admin
+boundary "Product Management\nPage" as FE
+participant ":API Gateway\n(Express Router)" as Router
+participant ":authMiddleware" as AuthMW
+participant ":validateMiddleware" as ValidateMW
+participant ":productController" as Controller
+participant ":productService" as Service
+participant ":Cloudinary API" as Cloudinary
+database "MongoDB\n(Product Collection)" as DB
+
+== Initiate Delete ==
+
+Admin -> FE: Click delete button\non product row
+activate FE
+
+FE -> FE: Show confirmation dialog
+note right of FE
+  Confirmation message:
+  "Are you sure you want to delete
+  [Product Name]?
+  This action cannot be undone."
+end note
+
+FE --> Admin: Display confirmation modal
+
+Admin -> FE: Confirm deletion
+
+FE -> Router: DELETE /v1/products/:productId\nHeaders: {Authorization: Bearer <token>}
+activate Router
+
+== Authentication & Authorization ==
+
+Router -> AuthMW: auth("manageProducts")
+activate AuthMW
+
+AuthMW -> AuthMW: Verify JWT token
+AuthMW -> AuthMW: Check user has\n"manageProducts" permission
+
+alt Invalid Token or No Permission
+    AuthMW --> Router: 401 Unauthorized /\n403 Forbidden
+    Router --> FE: Error response
+    FE -> FE: Close loading state
+    FE --> Admin: "You don't have permission\nto delete products"
+else Valid Token & Permission
+    AuthMW -> AuthMW: Attach req.user
+    AuthMW --> Router: Next()
+    deactivate AuthMW
+end
+
+== Validation ==
+
+Router -> ValidateMW: validate(productValidation.deleteProduct)
+activate ValidateMW
+
+ValidateMW -> ValidateMW: Validate params.productId\n(must be valid ObjectId)
+
+alt Invalid Product ID
+    ValidateMW --> Router: 400 Bad Request\n"Invalid product ID"
+    Router --> FE: Validation error
+    FE --> Admin: "Invalid product ID"
+else Valid ObjectId
+    ValidateMW --> Router: Next()
+    deactivate ValidateMW
+end
+
+== Delete Process ==
+
+Router -> Controller: deleteProduct(req, res)
+activate Controller
+
+Controller -> Service: deleteProductById(req.params.productId)
+activate Service
+
+== Check Product Exists ==
+
+Service -> DB: Product.findById(productId)
+activate DB
+
+DB --> Service: Return product or null
+deactivate DB
+
+alt Product Not Found
+    Service --> Controller: throw ApiError(404,\n"Product not found")
+    Controller --> Router: 404 Not Found
+    Router --> FE: Error response
+    FE --> Admin: "Product not found"
+end
+
+== Delete Product Image from Cloudinary ==
+
+alt Product Has Image
+    Service -> Service: Extract public_id\nfrom image URL
+    note right of Service
+      Extract from URL:
+      https://res.cloudinary.com/.../
+      product_images/abc123.jpg
+      
+      public_id = "product_images/abc123"
+    end note
+    
+    Service -> Cloudinary: cloudinary.uploader.destroy(public_id)
+    activate Cloudinary
+    
+    Cloudinary -> Cloudinary: Delete image file\nfrom cloud storage
+    
+    alt Image Deleted Successfully
+        Cloudinary --> Service: Success response
+    else Image Not Found or Error
+        Cloudinary --> Service: Error response
+        Service -> Service: Log error but continue\n(image may already be deleted)
+    end
+    
+    deactivate Cloudinary
+end
+
+== Delete Product from Database ==
+
+Service -> DB: Product.findByIdAndDelete(productId)
+activate DB
+
+DB -> DB: Remove product document
+DB -> DB: Trigger any pre-remove hooks\n(if defined)
+
+note right of DB
+  Cascade effects to consider:
+  - Remove from carts?
+  - Archive in orders (keep snapshot)
+  - Handle feedback/reviews
+  - Update related data
+end note
+
+DB --> Service: Return deleted product
+deactivate DB
+
+Service --> Controller: Return deleted product
+deactivate Service
+
+Controller --> Router: 200 OK\n{message: "Product deleted successfully"}
+deactivate Controller
+
+Router --> FE: Success response
+deactivate Router
+
+== Update UI ==
+
+FE -> FE: Remove product from list
+FE -> FE: Show success notification
+FE -> FE: Update pagination/counts\nif needed
+
+note right of FE
+  UI updates:
+  - Remove row from table
+  - Decrement total count
+  - Adjust pagination
+  - Show toast notification
+  - Refresh list if last item
+    on current page
+end note
+
+FE --> Admin: "Product deleted successfully!"
+deactivate FE
+
+@enduml
