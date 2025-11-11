@@ -35,6 +35,14 @@ const feedbackReplySchema = Schema(
     timestamps: true,
   }
 );
+// Expose timestamps for this model only
+feedbackReplySchema.set('toJSON', {
+  transform(doc, ret) {
+    if (doc.createdAt) ret.createdAt = doc.createdAt;
+    if (doc.updatedAt) ret.updatedAt = doc.updatedAt;
+    return ret;
+  },
+});
 
 feedbackReplySchema.plugin(toJSON);
 feedbackReplySchema.plugin(paginate);

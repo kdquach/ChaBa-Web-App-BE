@@ -43,6 +43,15 @@ const feedbackSchema = Schema(
 // Tạo Index cho hiệu suất truy vấn
 feedbackSchema.index({ productId: 1, rating: -1 });
 
+// Expose timestamps for this model only (plugin normally strips them)
+feedbackSchema.set('toJSON', {
+  transform(doc, ret) {
+    if (doc.createdAt) ret.createdAt = doc.createdAt;
+    if (doc.updatedAt) ret.updatedAt = doc.updatedAt;
+    return ret;
+  },
+});
+
 feedbackSchema.plugin(toJSON);
 feedbackSchema.plugin(paginate);
 
