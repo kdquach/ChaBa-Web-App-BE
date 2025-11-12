@@ -9,6 +9,7 @@ const ingredientCategoryRoute = require("./ingredientCategory.route");
 const cartRoute = require("./cart.route");
 const toppingRoute = require("./topping.route");
 const feedbackRoute = require("./feedback.route");
+const dashboardRoute = require("./dashboard.route");
 const docsRoute = require("./docs.route");
 const orderRoute = require("./order.route");
 const orderStaffRoute = require("./orderStaff.route");
@@ -54,6 +55,10 @@ const defaultRoutes = [
   {
     path: "/feedbacks",
     route: feedbackRoute,
+  },
+  {
+    path: "/dashboard",
+    route: dashboardRoute,
   },
   {
     path: "/cart",
