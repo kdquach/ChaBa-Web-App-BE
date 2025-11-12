@@ -55,13 +55,22 @@ const updateOrderStatus = async (orderId, newStatus, changedBy, note = "") => {
   const order = await Order.findById(orderId);
   if (!order) throw new Error("Không tìm thấy đơn hàng");
 
+  // 🚫 Kiểm tra trạng thái hiện tại
+  if (order.status === "completed") {
+    throw new Error("Đơn hàng đã hoàn tất, không thể thay đổi trạng thái.");
+  }
+
+  if (order.status === "cancelled") {
+    throw new Error("Đơn hàng đã bị hủy, không thể thay đổi trạng thái.");
+  }
+
   const previousStatus = order.status;
 
-  // Cập nhật trạng thái
+  // Cập nhật trạng thái mới
   order.status = newStatus;
   await order.save();
 
-  // Ghi log
+  // Ghi log thay đổi
   await OrderStatusLog.create({
     orderId,
     previousStatus,
