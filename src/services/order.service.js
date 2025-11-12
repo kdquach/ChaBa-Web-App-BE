@@ -9,17 +9,8 @@ const toObjectId = (id) => {
 };
 
 const checkIfUserPurchasedProduct = async (userId, productId) => {
-  // trả về false nếu userId không hợp lệ
-  const uId = toObjectId(userId);
-  if (!uId) return false;
-
-  // nếu productId có thể là string hoặc ObjectId
-  const pId = mongoose.Types.ObjectId.isValid(productId)
-    ? new mongoose.Types.ObjectId(productId)
-    : productId;
-
-  const orders = await Order.findOne({
-    userId: uId,
+  const orders = await Order.find({
+    userId,
     status: "completed",
     "products.productId": pId,
   }).lean();
