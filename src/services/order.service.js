@@ -1,18 +1,38 @@
-/* eslint-disable */
-const Order = require("../models/order.model");
 const mongoose = require("mongoose");
+const Order = require("../models/order.model");
+
+const toObjectId = (id) => {
+  if (!id) return null;
+  if (mongoose.Types.ObjectId.isValid(id))
+    return new mongoose.Types.ObjectId(id);
+  return null;
+};
+
 const checkIfUserPurchasedProduct = async (userId, productId) => {
-  const orders = await Order.find({
-    userId,
+  // trả về false nếu userId không hợp lệ
+  const uId = toObjectId(userId);
+  if (!uId) return false;
+
+  // nếu productId có thể là string hoặc ObjectId
+  const pId = mongoose.Types.ObjectId.isValid(productId)
+    ? new mongoose.Types.ObjectId(productId)
+    : productId;
+
+  const orders = await Order.findOne({
+    userId: uId,
     status: "completed",
-    "products.productId": productId,
-  });
+    "products.productId": pId,
+  }).lean();
+
   return !!orders;
 };
 
 const createOrder = async (userId, orderData) => {
+  const uId = toObjectId(userId);
+  if (!uId) throw new Error("Invalid userId");
+
   const order = new Order({
-    userId,
+    userId: uId,
     ...orderData,
   });
   await order.save();
@@ -20,16 +40,21 @@ const createOrder = async (userId, orderData) => {
 };
 
 const getOrdersByUser = async (userId, status) => {
-  const uId = new mongoose.Types.ObjectId(userId);
-  console.log("🚀 ~ getOrdersByUser ~ uId:", uId);
-  const orders = await Order.find({ userId: uId, status })
+  const uId = toObjectId(userId);
+  if (!uId) return []; // hoặc throw nếu bạn muốn báo lỗi
+
+  const filter = { userId: uId };
+  if (typeof status !== "undefined" && status !== null && status !== "") {
+    filter.status = status;
+  }
+
+  const orders = await Order.find(filter)
     .populate("products.productId", "image")
     .populate("userId", "name phone")
     .sort({ createdAt: -1 })
     .lean();
-  console.log("🚀 ~ getOrdersByUser ~ orders:", orders);
 
-  const formatted = orders.map((order) => ({
+  const formatted = (orders || []).map((order) => ({
     orderId: order._id,
     createdAt: order.createdAt,
     status: order.status,
@@ -40,48 +65,49 @@ const getOrdersByUser = async (userId, status) => {
     totalAmount: order.totalAmount,
     shippingAddress: order.shippingAddress,
     paymentMethod: order.payment?.method || "cash",
-    products: (order.products || []).map((item) => {
-      const prod = item.productId || null; // may be null if deleted or unpopulated
-      return {
-        _id: prod?._id || item.productId || null, // fallback to stored ref (could be ObjectId/string)
-        image: prod?.image || null,
-        name: item.name, // snapshot
-        quantity: item.quantity || 0, // snapshot
-        unitPrice: item.price || 0, // snapshot
-        customization: item.customization || null,
-        toppings: (item.toppings || []).map((t) => ({
-          name: t.name,
-          price: t.price,
-        })),
-      };
-    }),
+    products: (order.products || []).map((item) => ({
+      _id: item.productId?._id || item.productId, // nếu đã bị xoá product hoặc không populate
+      image: item.productId?.image || null,
+      name: item.name,
+      quantity: item.quantity,
+      unitPrice: item.price,
+      customization: item.customization || null,
+      toppings: (item.toppings || []).map((t) => ({
+        name: t.name,
+        price: t.price,
+      })),
+    })),
   }));
   return formatted;
 };
+
 const getOrderById = async (orderId) => {
+  if (!mongoose.Types.ObjectId.isValid(orderId)) return null;
   const order = await Order.findById(orderId)
     .populate("userId", "name email phone")
     .populate("products.productId", "image")
     .lean();
-  const formattedProducts = (order?.products || []).map((p) => {
-    const prod = p.productId || null;
-    return {
-      _id: prod?._id || p.productId || null,
-      image: prod?.image || null,
-      name: p.name,
-      quantity: p.quantity || 0,
-      unitPrice: p.price || 0,
-      toppings: (p.toppings || []).map((t) => ({
-        name: t.name,
-        price: t.price,
-      })),
-    };
-  });
-  return { ...(order || {}), products: formattedProducts };
+
+  if (!order) return null;
+
+  const formattedProducts = (order.products || []).map((p) => ({
+    _id: p.productId?._id || p.productId,
+    image: p.productId?.image || null,
+    name: p.name,
+    quantity: p.quantity,
+    unitPrice: p.price,
+    toppings: (p.toppings || []).map((t) => ({ name: t.name, price: t.price })),
+  }));
+  return { ...order, products: formattedProducts };
 };
 
 const updateOrderStatus = async (orderId, status) => {
-  const updatedOrder = await Order.findByIdAndUpdate(orderId, { status });
+  if (!mongoose.Types.ObjectId.isValid(orderId)) return null;
+  const updatedOrder = await Order.findByIdAndUpdate(
+    orderId,
+    { status },
+    { new: true, runValidators: true }
+  ).lean();
   return updatedOrder;
 };
 
