@@ -10,5 +10,6 @@ const validate = require("../../middlewares/validate");
 router.post("/", auth(), validate(orderValidation.createOrder), orderController.createOrder); // Tạo đơn hàng
 router.get("/", auth(), orderController.getUserOrdersByStatus); // Lấy danh sách đơn hàng của user
 router.get("/:orderId", auth('getOrders'), validate(orderValidation.getOrderById), orderController.getOrderById); // Chi tiết đơn hàng
+router.get('/:orderId/logs', auth(), orderController.getOrderLogs); // Lịch sử thay đổi trạng thái
 router.patch('/:orderId/:status', auth(), validate(orderValidation.updateOrderStatus), orderController.updateOrderStatus); // Cập nhật trạng thái / hủy đơn hàng
 module.exports = router;

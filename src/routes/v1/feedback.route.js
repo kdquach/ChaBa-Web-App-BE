@@ -2,6 +2,7 @@
 const express = require("express");
 const auth = require("../../middlewares/auth");
 const validate = require("../../middlewares/validate");
+const { requirePurchaseForFeedback, restrictReplyPermission } = require("../../middlewares/feedbackAuth");
 // const mockAuth = require("../../middlewares/mockupAuth");
 const feedbackValidation = require("../../validations/feedback.validation");
 const feedbackController = require("../../controllers/feedback.controller");
@@ -16,6 +17,7 @@ router
   .post(
     // mockAuth("user"),
     auth(),
+    requirePurchaseForFeedback,
     validate(feedbackValidation.createFeedback),
     feedbackController.createFeedback
   )
@@ -49,6 +51,7 @@ router
   .post(
     // mockAuth("admin user"),
     auth(),
+    restrictReplyPermission,
     validate(feedbackValidation.addReply),
     feedbackReplyController.addReply
   )
