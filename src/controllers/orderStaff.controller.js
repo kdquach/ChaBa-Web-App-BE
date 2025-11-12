@@ -39,7 +39,7 @@ const getOrderById = catchAsync(async (req, res) => {
 const updateOrderStatus = catchAsync(async (req, res) => {
   const { newStatus, note } = req.body;
   const orderId = req.params.orderId;
-  const userId = req.user?.id || null; // nếu bạn dùng JWT thì lấy từ token
+  const userId = req.user?.id || null; // lấy từ token
 
   if (!newStatus) {
     return res
@@ -47,13 +47,30 @@ const updateOrderStatus = catchAsync(async (req, res) => {
       .send({ message: "Thiếu trường newStatus" });
   }
 
-  const updatedOrder = await orderStaffService.updateOrderStatus(
-    orderId,
-    newStatus,
-    userId,
-    note
-  );
-  res.status(httpStatus.OK).send(updatedOrder);
+  try {
+    const updatedOrder = await orderStaffService.updateOrderStatus(
+      orderId,
+      newStatus,
+      userId,
+      note
+    );
+    res.status(httpStatus.OK).send(updatedOrder);
+  } catch (error) {
+    // ✅ Trả về 400 cho lỗi logic (ví dụ đã completed hoặc cancelled)
+    if (
+      error.message.includes("hoàn tất") ||
+      error.message.includes("bị hủy")
+    ) {
+      return res
+        .status(httpStatus.BAD_REQUEST)
+        .send({ message: error.message });
+    }
+
+    // Các lỗi khác (ví dụ lỗi DB) giữ nguyên 500
+    res
+      .status(httpStatus.INTERNAL_SERVER_ERROR)
+      .send({ message: error.message });
+  }
 });
 
 /**
