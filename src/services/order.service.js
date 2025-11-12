@@ -1,7 +1,7 @@
 const Order = require("../models/order.model");
 const mongoose = require("mongoose");
 const checkIfUserPurchasedProduct = async (userId, productId) => {
-  const orders = await Order.findOne({
+  const orders = await Order.find({
     userId,
     status: "completed",
     "products.productId": productId,
