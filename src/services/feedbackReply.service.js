@@ -23,8 +23,8 @@ class FeedbackReplyService {
       }
     }
 
-    // 3. Xác định xem có phải Staff/Admin trả lời không (Dùng cho FE hiển thị icon)
-    const isStaffReply = userRole === "admin";
+  // 3. Xác định xem có phải Staff/Admin trả lời không (Dùng cho FE hiển thị icon)
+  const isStaffReply = userRole === "admin" || userRole === "staff";
 
     // 4. Tạo Reply
     return FeedbackReply.create({
